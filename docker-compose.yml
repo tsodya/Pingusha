@@ -1,0 +1,18 @@
+services:
+  app:
+    build: ./app
+    container_name: pingusha
+    ports:
+      - "8000:8000"
+    volumes:
+      - pingusha-data:/app/data
+    environment:
+      - DB_PATH=/app/data/pingusha.db
+      - SESSION_TTL_DAYS=30
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - LANG=${LANG:-ru}
+    restart: unless-stopped
+
+volumes:
+  pingusha-data:

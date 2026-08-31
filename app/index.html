@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0d12">
+<title>Pingusha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@300;600;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+:root {
+  --bg:       #0a0d12;
+  --surface:  #10141c;
+  --panel:    #151a24;
+  --border:   #1e2535;
+  --accent:   #00e5ff;
+  --accent2:  #7b61ff;
+  --green:    #00e676;
+  --yellow:   #ffd740;
+  --red:      #ff3d57;
+  --grey:     #546e7a;
+  --text:     #cdd6f4;
+  --text2:    #7888a0;
+  --font-ui:  'JetBrains Mono', monospace;
+  --font-hd:  'Unbounded', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* safe area for notch/dynamic island and browser UI */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ── Topbar ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 1000;
+}
+#topbar h1 {
+  font-family: var(--font-hd);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+#topbar .sep { flex: 1; }
+/* ── Мобильная шапка ── */
+@media (max-width: 600px) {
+  #topbar {
+    gap: 8px;
+    padding: 4px 10px;
+    height: auto;
+    flex-wrap: wrap;
+  }
+  #topbar h1 { font-size: 11px; }
+  #user-info { display: none; }
+  .pill { padding: 3px 8px; font-size: 10px; }
+}
+.pill {
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+  background: transparent;
+  font-family: var(--font-ui);
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+.pill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.07); }
+#user-info { font-size: 11px; color: var(--text2); }
+#user-info span { color: var(--accent2); }
+
+/* ── Layout ── */
+#main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Map ── */
+#map-wrap {
+  flex: 1;
+  position: relative;
+}
+#map {
+  width: 100%;
+  height: 100%;
+}
+/* MapLibre GL — no overrides needed */
+
+/* Map controls overlay */
+#map-controls {
+  position: absolute;
+  top: 14px;
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.map-btn:hover { border-color: var(--accent); color: var(--accent); }
+.map-btn.active { background: rgba(0,229,255,.1); border-color: var(--accent); color: var(--accent); }
+
+/* ── Site panel — fullscreen overlay ── */
+#side-panel {
+  position: fixed;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  left: 0; right: 0; bottom: 0;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 900;
+  transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s;
+}
+#side-panel.collapsed {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#panel-header {
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+#panel-title {
+  font-family: var(--font-hd);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  flex: 1;
+  text-transform: uppercase;
+}
+.close-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all .15s;
+}
+.close-btn:hover { color: var(--red); border-color: var(--red); }
+
+#panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+#panel-body::-webkit-scrollbar { width: 6px; }
+#panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Status badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.badge::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.badge.green { color: var(--green); background: rgba(0,230,118,.1); }
+.badge.green::before { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.badge.yellow { color: var(--yellow); background: rgba(255,215,64,.1); }
+.badge.yellow::before { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.badge.red { color: var(--red); background: rgba(255,61,87,.1); }
+.badge.red::before { background: var(--red); box-shadow: 0 0 6px var(--red); animation: pulse 1.2s infinite; }
+.badge.unknown { color: var(--grey); background: rgba(84,110,122,.1); }
+.badge.unknown::before { background: var(--grey); }
+
+@keyframes pulse {
+  0%,100% { opacity: 1; } 50% { opacity: .35; }
+}
+
+/* ── Device tree ── */
+.device-tree { display: flex; flex-direction: column; gap: 4px; }
+
+.device-node {
+  display: flex;
+  flex-direction: column;
+}
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: default;
+  transition: background .12s;
+  border: 1px solid transparent;
+  min-height: 34px;
+}
+.device-row:hover { background: rgba(255,255,255,.05); border-color: var(--border); }
+.device-row.selected { background: rgba(0,229,255,.07); border-color: rgba(0,229,255,.2); }
+
+.device-indent { display: flex; align-items: center; flex-shrink: 0; }
+/* Горизонтальный «крючок» от вертикальной линии к узлу */
+.tree-hook {
+  width: 14px;
+  height: 2px;
+  background: #4f6390;
+  flex-shrink: 0;
+}
+/* Вертикальные линии дерева: рисуются на контейнере детей */
+.device-children {
+  margin-left: 14px;
+  border-left: 2px solid #4f6390;
+}
+
+.device-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+.device-name {
+  flex: 1;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.device-ip {
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
+  font-weight: 400;
+  opacity: .8;
+}
+.device-status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(10,14,24,.6);
+  box-sizing: border-box;
+}
+.dot-online  { background: var(--green); box-shadow: 0 0 7px var(--green); }
+.dot-offline { background: var(--red);   box-shadow: 0 0 7px var(--red); animation: pulse 1.2s infinite; }
+.dot-unknown { background: var(--grey); }
+.dot-suppressed { background: var(--grey); opacity: .4; }
+.dot-switch  { background: transparent; border: 2px dashed var(--text2); opacity: .7; }
+
+/* ── Легенда статусов ── */
+.tree-legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 10px; color: var(--text2);
+  margin: 8px 0 12px; padding: 8px 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+}
+.tree-legend .lg { display: flex; align-items: center; gap: 6px; }
+.tree-legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.tree-legend .dot.online { background: var(--green); }
+.tree-legend .dot.offline { background: var(--red); }
+.tree-legend .dot.unknown { background: var(--grey); }
+.tree-legend .dot.noping { background: transparent; border: 2px dashed var(--text2); }
+
+.device-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  opacity: 1;
+}
+.dev-act-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.dev-act-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.07); }
+.dev-act-btn.del:hover { border-color: var(--red); color: var(--red); background: rgba(255,61,87,.07); }
+
+/* ── Log ── */
+.log-list { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.log-entry {
+  font-size: 10px;
+  color: var(--text2);
+  padding: 4px 8px;
+  border-left: 2px solid var(--border);
+  line-height: 1.5;
+}
+.log-entry .log-time { color: var(--text2); opacity: .6; }
+.log-entry.to-online { border-color: var(--green); }
+.log-entry.to-offline { border-color: var(--red); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .15s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 26px 28px;
+  width: 420px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp .18s;
+}
+@keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.modal h2 {
+  font-family: var(--font-hd);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* Корзина в углу карточки устройства */
+.del-corner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all .12s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.del-corner:hover { border-color: var(--red); color: var(--red); background: rgba(255,61,87,.07); }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; }
+.field input, .field select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 16px; /* 16px prevents iOS auto-zoom on focus */
+  transition: border-color .15s;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+/* Нативные time/datetime инпуты на мобильных ведут себя капризно */
+.field input[type=time] {
+  flex: 1 1 auto;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.field select option { background: var(--panel); }
+
+/* ── Выбор типа устройства: кружки-кнопки ── */
+.type-radios { display: flex; flex-wrap: wrap; gap: 8px; }
+.type-radio {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  width: 88px; padding: 10px 6px 8px;
+  border: 1px solid var(--border); border-radius: 12px;
+  cursor: pointer; background: var(--surface);
+  transition: border-color .15s, background .15s;
+  user-select: none;
+}
+.type-radio input { display: none; }
+.type-radio .type-icon { font-size: 22px; line-height: 1; }
+.type-radio .type-label { font-size: 9px; text-align: center; color: var(--text2); line-height: 1.15; }
+.type-radio:hover { border-color: var(--accent); }
+.type-radio.selected { border-color: var(--accent); background: rgba(0,229,255,.08); }
+.type-radio.selected .type-label { color: var(--text); }
+
+/* ── Интервал пинга: круглые кнопки ── */
+.interval-radios { display: flex; flex-wrap: wrap; gap: 8px; }
+.interval-radio {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 44px; height: 38px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 20px;
+  cursor: pointer; background: var(--surface);
+  font-size: 12px; color: var(--text2);
+  transition: border-color .15s, background .15s, color .15s;
+  user-select: none;
+}
+.interval-radio input { display: none; }
+.interval-radio:hover { border-color: var(--accent); }
+.interval-radio.selected { border-color: var(--accent); background: rgba(0,229,255,.08); color: var(--text); }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+/* ── Права менеджера: список объектов ── */
+.site-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.site-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color .15s;
+}
+.site-check input { accent-color: var(--accent); width: auto; }
+.site-check:hover { border-color: var(--accent); }
+.checkbox-row input[type=checkbox] {
+  width: 15px; height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.checkbox-row label { font-size: 11px; cursor: pointer; }
+
+.modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+.btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+}
+.btn-primary:hover { background: #33ecff; }
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text2);
+}
+.btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+.btn-danger {
+  background: transparent;
+  border-color: var(--red);
+  color: var(--red);
+}
+.btn-danger:hover { background: rgba(255,61,87,.1); }
+
+/* ── Admin section ── */
+#admin-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: none;
+}
+#admin-view.active { display: block; }
+#admin-view h2 {
+  font-family: var(--font-hd);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.admin-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.admin-section h3 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text2);
+  margin-bottom: 14px;
+}
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.user-row:last-child { border-bottom: none; }
+.user-row .uname { flex: 1; }
+.user-row .urole {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--text2);
+}
+.user-row .urole.admin { border-color: var(--accent2); color: var(--accent2); }
+
+/* ── Login screen ── */
+#login-screen {
+  position: fixed;
+  top: env(safe-area-inset-top, 0);
+  left: env(safe-area-inset-left, 0);
+  right: env(safe-area-inset-right, 0);
+  bottom: env(safe-area-inset-bottom, 0);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow-y: auto;
+  padding: 20px;
+}
+.login-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 44px;
+  width: 340px;
+}
+.login-box h1 {
+  font-family: var(--font-hd);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: .1em;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.login-box p {
+  font-size: 10px;
+  color: var(--text2);
+  text-align: center;
+  margin-bottom: 28px;
+}
+.login-box .field { margin-bottom: 12px; }
+.login-error { color: var(--red); font-size: 10px; text-align: center; margin-top: 8px; min-height: 14px; }
+
+/* ── Marker styles ── */
+/* Элемент нулевого размера: точка привязки маркера = центр кружка = координата */
+.site-marker {
+  position: relative;
+  width: 0; height: 0;
+  cursor: pointer;
+}
+.site-marker.no-label .marker-label { visibility: hidden; }
+.marker-dot {
+  position: absolute;
+  left: 0; top: 0;
+  transform: translate(-50%, -50%);
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid #0a0d12;
+  /* чёткое белое кольцо (без размытия) — видно на любом фоне карты */
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,.7);
+}
+.marker-dot.green  { background: var(--green); }
+.marker-dot.yellow { background: var(--yellow); }
+.marker-dot.red    { background: var(--red); }
+.marker-dot.unknown{ background: var(--grey); }
+/* Кластер объектов на малом масштабе */
+.cluster-marker {
+  position: relative;
+  width: 44px; height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.cluster-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cluster-ring .ring-base {
+  fill: rgba(10,14,24,.88);
+  stroke: var(--green);
+  stroke-width: 5;
+}
+.cluster-ring .ring-bad {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 5;
+}
+.cluster-num {
+  position: relative;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+.marker-label {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  transform: translateX(-50%);
+  background: rgba(10,13,18,.85);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  color: var(--text);
+  pointer-events: none;
+}
+
+/* ── Tiles view ── */
+#tiles-view {
+  flex: 1;
+  overflow-y: auto;
+}
+.tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  align-content: start;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--grey);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color .15s;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.tile:hover { border-color: var(--accent); }
+.tile.green  { border-left-color: var(--green); }
+.tile.yellow { border-left-color: var(--yellow); }
+.tile.red    { border-left-color: var(--red); }
+.tile-head { display: flex; align-items: center; gap: 8px; }
+.tile-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tile-dot.green  { background: var(--green); }
+.tile-dot.yellow { background: var(--yellow); }
+.tile-dot.red    { background: var(--red); }
+.tile-dot.unknown{ background: var(--grey); }
+.tile-name { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.tile-meta { margin-top: 8px; font-size: 11px; color: var(--text2); }
+.tile-off { color: var(--red); font-weight: 600; }
+.tile-on  { color: var(--green); }
+
+/* ── Misc ── */
+.section-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text2);
+  margin: 22px 0 10px;
+}
+.inline-btn {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--text2);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+  width: 100%;
+  text-align: left;
+}
+.inline-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row .val { color: var(--accent); }
+
+.tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,.05); color: var(--text2); }
+.tag.must { background: rgba(0,229,255,.08); color: var(--accent); }
+
+/* scrollbar global */
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>PINGUSHA</h1>
+    <p>NETWORK MONITORING SYSTEM</p>
+    <div class="field">
+      <label data-i18n="LOGIN_USER"></label>
+      <input id="l-user" type="text" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="field">
+      <label data-i18n="LOGIN_PASS"></label>
+      <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()" data-i18n="LOGIN_BTN"></button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- Topbar -->
+<div id="topbar">
+  <h1>PINGUSHA</h1>
+  <button class="pill active" id="tab-tiles" onclick="switchTab('tiles')" data-i18n="SITES"></button>
+  <button class="pill" id="tab-map" onclick="switchTab('map')" data-i18n="MAP"></button>
+  <button class="pill" id="tab-admin" onclick="switchTab('admin')" style="display:none" data-i18n="SETTINGS"></button>
+  <div class="sep"></div>
+  <div id="user-info"><span data-i18n="LOGGED_AS"></span> <span id="current-user">—</span></div>
+  <button class="pill" onclick="doLogout()" style="color:var(--red)" data-i18n="LOGOUT"></button>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <!-- Map view -->
+  <div id="map-wrap" style="display:none">
+    <div id="map"></div>
+    <div id="map-controls" style="display:none">
+      <button class="map-btn active" id="btn-add-site" onclick="toggleAddSite()" style="display:none">+ OBJECT</button>
+    </div>
+  </div>
+
+  <!-- Tiles view -->
+  <div id="tiles-view">
+    <div class="tiles-grid" id="tiles-grid"></div>
+  </div>
+
+  <!-- Side panel -->
+  <div id="side-panel" class="collapsed">
+    <div id="panel-header">
+      <div id="panel-title">—</div>
+      <button class="close-btn" onclick="closePanel()">✕</button>
+    </div>
+    <div id="panel-body"></div>
+  </div>
+
+  <!-- Admin view -->
+  <div id="admin-view">
+    <h2 data-i18n="SETTINGS">НАСТРОЙКИ</h2>
+    <div class="admin-section">
+      <h3 data-i18n="NOTIFICATIONS">${t('NOTIFICATIONS')}</h3>
+      <div id="notif-body" style="font-size:12px;color:var(--text2)">Загрузка…</div>
+    </div>
+    <div class="admin-section" id="sec-users" style="display:none">
+      <h3 data-i18n="USERS"></h3>
+      <div id="users-list"></div>
+      <button class="inline-btn" style="margin-top:10px" onclick="openAddUser()">+ Добавить пользователя</button>
+    </div>
+    <div class="admin-section" id="sec-bot-token" style="display:none">
+      <h3 data-i18n="BOT_TOKEN"></h3>
+      <div class="field"><label data-i18n="BOT_TOKEN_LBL"></label>
+        <input type="password" id="bt-token" placeholder="123456:ABC-DEF..." autocomplete="off"></div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:10px" data-i18n="BOT_TOKEN_HINT"></div>
+      <button class="btn btn-primary" onclick="saveBotToken()" data-i18n="SAVE"></button>
+      <div id="bt-msg" style="font-size:10px;margin-top:8px"></div>
+    </div>
+    <div class="admin-section">
+      <h3 data-i18n="CHANGE_PASS">${t('CHANGE_PASS')}</h3>
+      <div class="field"><label>${t('CUR_PASS')}</label><input type="password" id="cp-old"></div>
+      <div class="field"><label>${t('NEW_PASS')}</label><input type="password" id="cp-new"></div>
+      <button class="btn btn-primary" onclick="changePassword()">REFRESH</button>
+      <div id="cp-msg" style="font-size:10px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals container -->
+<div id="modals"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────
+const API = '';
+let currentUser = null;
+
+// Auto-login if session cookie exists
+(async () => {
+  try {
+    const res = await fetch('/api/me', { credentials: 'same-origin' });
+    if (res.ok) {
+      currentUser = await res.json();
+      onLoginSuccess();
+    }
+  } catch {}
+})();
+let map = null;
+let markers = {};       // site_id → maplibre marker
+let sites = [];
+let addSiteMode = false;
+let selectedSiteId = null;
+let editingOrder = false;
+let refreshTimer = null;
+
+// ─────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('l-user').value.trim();
+  const p = document.getElementById('l-pass').value;
+  if (!u || !p) return;
+  const btn = document.querySelector('#login-screen .btn-primary');
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    if (!res.ok) {
+      let msg = t('BAD_CREDS');
+      try {
+        const j = await res.json();
+        if (j.detail) msg = j.detail;
+      } catch {}
+      document.getElementById('login-error').textContent = msg;
+      return;
+    }
+    currentUser = await res.json();
+    onLoginSuccess();
+  } catch {
+    document.getElementById('login-error').textContent = t('CONN_ERR');
+  } finally {
+    btn.textContent = 'ВОЙТИ';
+    btn.disabled = false;
+  }
+}
+
+// iOS PWA (standalone): страховка от чёлки — если safe-area не применился (старый кэш),
+// сдвигаем шапку вручную, чтобы надписи не уходили под чёлку
+if (window.navigator.standalone) {
+  const pad = parseInt(getComputedStyle(document.body).paddingTop);
+  if (pad < 30) {
+    document.body.style.paddingTop = '47px';
+  }
+}
+
+function onLoginSuccess() {
+  document.getElementById('current-user').textContent = currentUser.username;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('tab-admin').style.display = '';   // Настройки — всем (уведомления)
+  if (currentUser.role === 'admin') {
+    document.getElementById('btn-add-site').style.display = '';
+  }
+  document.getElementById('map-controls').style.display = '';
+  initMap();
+  startRefresh();
+}
+
+function showLoginScreen() {
+  currentUser = null;
+  clearInterval(refreshTimer);
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('tab-admin').style.display = 'none';
+  document.getElementById('btn-add-site').style.display = 'none';
+  document.getElementById('map-controls').style.display = 'none';
+  document.getElementById('login-error').textContent = t('SESSION_EXPIRED');
+}
+
+document.getElementById('l-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogout() {
+  try { await apiFetch('/api/logout', { method: 'POST' }); } catch {}
+  currentUser = null;
+  clearInterval(refreshTimer);
+  if (map) { map.remove(); map = null; markers = {}; }
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('tab-admin').style.display = 'none';
+  document.getElementById('btn-add-site').style.display = 'none';
+  document.getElementById('map-controls').style.display = 'none';
+  document.getElementById('login-error').textContent = '';
+}
+
+// ─────────────────────────────────────────────
+// API helper
+// ─────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    },
+  });
+  if (res.status === 401) {
+    // Session expired — show login screen
+    showLoginScreen();
+    throw new Error('Not authenticated');
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+// ─────────────────────────────────────────────
+// Map init
+// ─────────────────────────────────────────────
+function initMap() {
+  if (map) return;
+  maplibregl.setRTLTextPlugin('', null, true);
+  map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {
+        carto: {
+          type: 'raster',
+          tiles: [
+            'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+            'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+            'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+          ],
+          tileSize: 256,
+          attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
+          maxzoom: 19,
+        }
+      },
+      layers: [{ id: 'carto-tiles', type: 'raster', source: 'carto' }]
+    },
+    center: [82.9, 54.5],
+    zoom: 5,
+  });
+
+  // Custom zoom control position
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+  map.on('load', () => { loadSites(); });
+  map.on('click', onMapClick);
+  map.on('zoom', updateMapVisibility);
+  map.on('moveend', updateMapVisibility);
+}
+
+function onMapClick(e) {
+  if (!addSiteMode) return;
+  openAddSiteModal(e.lngLat.lat, e.lngLat.lng);
+}
+
+// ─────────────────────────────────────────────
+// Sites
+// ─────────────────────────────────────────────
+async function loadSites() {
+  try {
+    sites = await apiFetch('/api/sites');
+    renderMarkers();
+    updateMapVisibility();
+    fitMapToSites();
+    renderTiles();
+    if (selectedSiteId) {
+      const s = sites.find(x => x.id === selectedSiteId);
+      if (s) renderPanel(s);
+    }
+  } catch (e) { console.error(e); }
+}
+
+function renderTiles() {
+  const grid = document.getElementById('tiles-grid');
+  if (!grid) return;
+  if (!sites.length) {
+    grid.innerHTML = '<div style="color:var(--text2);font-size:12px;padding:20px">' + t('NO_SITES') + '</div>';
+    return;
+  }
+  // Сначала объекты с проблемами (есть offline), потом остальные, внутри — по имени
+  const sorted = [...sites].sort((a, b) => {
+    const aOff = (a.devices_offline ?? 0) > 0 ? 0 : 1;
+    const bOff = (b.devices_offline ?? 0) > 0 ? 0 : 1;
+    if (aOff !== bOff) return aOff - bOff;
+    return (a.name || '').localeCompare(b.name || '', 'ru');
+  });
+  grid.innerHTML = sorted.map(s => {
+    const st = statusColor(s.status);
+    const online = s.devices_online ?? 0;
+    const offline = s.devices_offline ?? 0;
+    const total = s.devices_total ?? 0;
+    const meta = total === 0
+      ? 'устройств нет'
+      : offline > 0
+        ? `<span class="tile-off">${online} ${t('ONLINE')} · ${offline} ${t('NO')}</span>`
+        : `<span class="tile-on">${online} ${t('ONLINE')}</span>`;
+    return `
+      <div class="tile ${st}" onclick="openSitePanel(${s.id})">
+        <div class="tile-head">
+          <span class="tile-dot ${st}"></span>
+          <span class="tile-name">${escHtml(s.name)}</span>
+        </div>
+        <div class="tile-meta">${meta}</div>
+      </div>`;
+  }).join('');
+}
+
+function startRefresh() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(loadSites, 8000);
+}
+
+function statusColor(s) {
+  return { green: 'green', yellow: 'yellow', red: 'red', unknown: 'unknown' }[s] || 'unknown';
+}
+
+function makeMarkerEl(site) {
+  const c = statusColor(site.status);
+  const el = document.createElement('div');
+  el.className = 'site-marker';
+  el.innerHTML = `
+    <div class="marker-dot ${c}"></div>
+    <div class="marker-label">${escHtml(site.name)}</div>`;
+  return el;
+}
+
+let clusterMarkers = {};
+let mapViewInitialized = false;
+
+const CLUSTER_RADIUS_PX = 32; // объединяем, когда круги касаются/наползают
+
+// Подбираем масштаб так, чтобы все объекты пользователя были видны (крайние — на 8% от краёв)
+function fitMapToSites() {
+  if (mapViewInitialized || !map || !sites.length) return;
+  const c = map.getContainer();
+  if (c.clientWidth === 0 || c.clientHeight === 0) return; // карта скрыта — подождём
+  mapViewInitialized = true;
+  const bounds = new maplibregl.LngLatBounds();
+  for (const s of sites) bounds.extend([s.lng, s.lat]);
+  const w = c.clientWidth, h = c.clientHeight;
+  map.fitBounds(bounds, {
+    padding: {
+      top: Math.round(h * 0.08), bottom: Math.round(h * 0.08),
+      left: Math.round(w * 0.08), right: Math.round(w * 0.08),
+    },
+    maxZoom: 15,
+    duration: 0,
+  });
+}
+
+function renderClusters() {
+  for (const cid in clusterMarkers) { clusterMarkers[cid].remove(); }
+  clusterMarkers = {};
+  if (!map || !sites.length) return;
+  // сначала показываем все индивидуальные маркеры
+  for (const id in markers) markers[id].getElement().style.display = '';
+
+  // Кластеризация по экранному расстоянию: как только точки наползают друг на друга (R px) — в кластер
+  const R2 = CLUSTER_RADIUS_PX * CLUSTER_RADIUS_PX;
+  const pts = sites.map(s => ({ s, p: map.project([s.lng, s.lat]) }));
+  const visited = new Array(pts.length).fill(false);
+  const clusters = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (visited[i]) continue;
+    const group = [];
+    const queue = [i];
+    visited[i] = true;
+    while (queue.length) {
+      const j = queue.shift();
+      group.push(pts[j]);
+      for (let k = 0; k < pts.length; k++) {
+        if (visited[k]) continue;
+        const dx = pts[j].p.x - pts[k].p.x;
+        const dy = pts[j].p.y - pts[k].p.y;
+        if (dx * dx + dy * dy <= R2) { visited[k] = true; queue.push(k); }
+      }
+    }
+    clusters.push(group);
+  }
+  for (const g of clusters) {
+    if (g.length < 2) continue; // одиночные — остаются обычными маркерами
+    // скрываем индивидуальные маркеры участников кластера
+    for (const x of g) {
+      const m = markers[x.s.id];
+      if (m) m.getElement().style.display = 'none';
+    }
+    const lat = g.reduce((a, x) => a + x.s.lat, 0) / g.length;
+    const lng = g.reduce((a, x) => a + x.s.lng, 0) / g.length;
+    const total = g.length;
+    const bad = g.filter(x => (x.s.devices_offline || 0) > 0).length;
+    const el = document.createElement('div');
+    el.className = 'cluster-marker';
+    // кольцо: зелёное, если все в сети; красная дуга = доля проблемных
+    const C = 2 * Math.PI * 16;
+    const redLen = bad ? (bad / total) * C : 0;
+    el.innerHTML = `
+      <svg viewBox="0 0 40 40" class="cluster-ring">
+        <circle cx="20" cy="20" r="16" class="ring-base"></circle>
+        ${bad ? `<circle cx="20" cy="20" r="16" class="ring-bad" stroke-dasharray="${redLen.toFixed(2)} ${(C - redLen).toFixed(2)}" transform="rotate(-90 20 20)"></circle>` : ''}
+      </svg>
+      <span class="cluster-num">${total}</span>`;
+    el.addEventListener('click', () => {
+      map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom() + 2, 13) });
+    });
+    clusterMarkers[`${lat},${lng}`] = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([lng, lat])
+      .addTo(map);
+  }
+}
+
+// Подписи показываем, только если НИ ОДНА не перекрывает другую или чужие точки
+function labelsFit() {
+  const rects = [];
+  for (const s of sites) {
+    const m = markers[s.id];
+    if (!m) continue;
+    const p = map.project([s.lng, s.lat]);
+    const label = m.getElement().querySelector('.marker-label');
+    if (!label) continue;
+    const w = label.offsetWidth || 40;
+    const h = label.offsetHeight || 18;
+    rects.push({ x1: p.x - w / 2, x2: p.x + w / 2, y1: p.y + 10, y2: p.y + 10 + h, px: p.x, py: p.y });
+  }
+  for (let i = 0; i < rects.length; i++) {
+    for (let j = 0; j < rects.length; j++) {
+      if (i === j) continue;
+      // подпись i vs подпись j
+      if (rects[i].x1 < rects[j].x2 && rects[i].x2 > rects[j].x1 &&
+          rects[i].y1 < rects[j].y2 && rects[i].y2 > rects[j].y1) return false;
+      // подпись i vs точка j (с запасом)
+      if (rects[i].x1 < rects[j].px + 10 && rects[i].x2 > rects[j].px - 10 &&
+          rects[i].y1 < rects[j].py + 10 && rects[i].y2 > rects[j].py - 10) return false;
+    }
+  }
+  return true;
+}
+
+function updateMapVisibility() {
+  renderClusters();
+  const fit = labelsFit();
+  for (const id in markers) {
+    markers[id].getElement().classList.toggle('no-label', !fit);
+  }
+}
+
+function renderMarkers() {
+  const existingIds = new Set(sites.map(s => s.id));
+
+  // Remove stale markers
+  for (const id in markers) {
+    if (!existingIds.has(+id)) {
+      markers[id].remove();
+      delete markers[id];
+    }
+  }
+
+  for (const site of sites) {
+    if (markers[site.id]) {
+      // Update existing marker element
+      const el = markers[site.id].getElement();
+      const c = statusColor(site.status);
+      el.querySelector('.marker-dot').className = `marker-dot ${c}`;
+      el.querySelector('.marker-label').textContent = site.name;
+      markers[site.id].setLngLat([site.lng, site.lat]);
+    } else {
+      const el = makeMarkerEl(site);
+      el.addEventListener('click', () => openSitePanel(site.id));
+      const m = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([site.lng, site.lat])
+        .addTo(map);
+      markers[site.id] = m;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Add site mode
+// ─────────────────────────────────────────────
+function toggleAddSite() {
+  addSiteMode = !addSiteMode;
+  const btn = document.getElementById('btn-add-site');
+  btn.classList.toggle('active', addSiteMode);
+  btn.textContent = addSiteMode ? '✕ ' + t('CANCEL') : '+ ' + t('OBJECT');
+  map.getContainer().style.cursor = addSiteMode ? 'crosshair' : '';
+}
+
+function openAddSiteModal(lat, lng) {
+  showModal(`
+    <h2>${t('NEW_SITE')}</h2>
+    <div class="field"><label>NAME</label><input id="ns-name" type="text" placeholder="Офис №1"></div>
+    <div style="font-size:10px;color:var(--text2)">${t('COORDS')}: ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="submitAddSite(${lat},${lng})">CREATE</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('ns-name')?.focus(), 50);
+}
+
+async function submitAddSite(lat, lng) {
+  const name = document.getElementById('ns-name').value.trim();
+  if (!name) return;
+  await apiFetch('/api/sites', {
+    method: 'POST',
+    body: JSON.stringify({ name, lat, lng }),
+  });
+  closeModal();
+  toggleAddSite();
+  await loadSites();
+}
+
+// ─────────────────────────────────────────────
+// Site panel
+// ─────────────────────────────────────────────
+async function openSitePanel(siteId) {
+  selectedSiteId = siteId;
+  const site = sites.find(s => s.id === siteId);
+  if (!site) return;
+  renderPanel(site);
+  document.getElementById('side-panel').classList.remove('collapsed');
+}
+
+function toggleOrderMode() {
+  editingOrder = !editingOrder;
+  const site = sites.find(s => s.id === selectedSiteId);
+  if (site) renderPanel(site);
+}
+
+async function moveDevice(devId, dir, e) {
+  e.stopPropagation();
+  if (!selectedSiteId) return;
+  let all = [];
+  try { all = await apiFetch(`/api/sites/${selectedSiteId}/devices`); } catch { return; }
+  const dev = all.find(d => d.id === devId);
+  if (!dev) return;
+  const pid = dev.parent_id || null;
+  const siblings = all
+    .filter(d => (d.parent_id || null) === pid)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
+  const idx = siblings.findIndex(d => d.id === devId);
+  const otherIdx = dir === 'up' ? idx - 1 : idx + 1;
+  if (otherIdx < 0 || otherIdx >= siblings.length) return;
+  // Перемещаем элемент и пересчитываем sort_order всем соседям уровня
+  const [item] = siblings.splice(idx, 1);
+  siblings.splice(otherIdx, 0, item);
+  for (let i = 0; i < siblings.length; i++) {
+    if ((siblings[i].sort_order || 0) !== i) {
+      await apiFetch(`/api/devices/${siblings[i].id}`, { method: 'PUT', body: JSON.stringify({ sort_order: i }) });
+    }
+  }
+  const site = sites.find(s => s.id === selectedSiteId);
+  if (site) renderPanel(site);
+}
+
+async function renderPanel(site) {
+  document.getElementById('panel-title').textContent = site.name;
+  const c = statusColor(site.status);
+  const labels = { green: t('ALL_OK'), yellow: t('HAS_PROBLEMS'), red: t('SITE_DOWN'), unknown: t('NO_DATA') };
+
+  let devices = [];
+  try { devices = await apiFetch(`/api/sites/${site.id}/devices`); } catch {}
+
+  // Compute suppressed
+  const byId = {};
+  for (const d of devices) byId[d.id] = d;
+
+  function isParentUnavailable(dev) {
+    let pid = dev.parent_id;
+    while (pid) {
+      const p = byId[pid];
+      if (!p) break;
+      if (p.type === 'switch') { pid = p.parent_id; continue; }
+      if (!p.must_be_online) return true;
+      if (p.status === 'offline') return true;
+      pid = p.parent_id;
+    }
+    return false;
+  }
+
+  for (const d of devices) {
+    d._suppressed = (d.type !== 'switch' && d.type !== 'gateway' && isParentUnavailable(d));
+  }
+
+  const body = document.getElementById('panel-body');
+
+  // Build tree HTML
+  function buildTree(parentId, depth) {
+    const children = devices
+      .filter(d => (d.parent_id || null) === (parentId || null))
+      .sort((a, b) =>
+        (a.sort_order || 0) - (b.sort_order || 0) ||
+        a.id - b.id);
+    if (!children.length) return '';
+    let html = '';
+    for (const [idx, dev] of children.entries()) {
+      const isLast = idx === children.length - 1;
+      const icon = DEVICE_ICONS[dev.type] || '📡';
+      let dotClass = 'dot-unknown';
+      if (dev.type === 'switch') dotClass = 'dot-switch';
+      else if (dev._suppressed) dotClass = 'dot-suppressed';
+      else if (dev.status === 'online') dotClass = 'dot-online';
+      else if (dev.status === 'offline') dotClass = 'dot-offline';
+
+      const mustTag = ''; // «обяз» убран из дерева; функционал must_be_online остался в карточке
+      const ipText = ''; // IP больше не показываем в дереве — в карточке устройства
+
+      // В режиме «Порядок»: стрелки ↑↓ вместо кнопки информации (у шлюза стрелок нет)
+      let adminBtns;
+      if (editingOrder && dev.type !== 'gateway') {
+        const upBtn = idx > 0
+          ? `<button class="dev-act-btn" onclick="moveDevice(${dev.id},'up',event)" title="${t('UP')}">↑</button>` : '';
+        const downBtn = idx < children.length - 1
+          ? `<button class="dev-act-btn" onclick="moveDevice(${dev.id},'down',event)" title="${t('DOWN')}">↓</button>` : '';
+        adminBtns = `<div class="device-actions">${upBtn}${downBtn}</div>`;
+      } else {
+        adminBtns = `
+        <div class="device-actions">
+          <button class="dev-act-btn" onclick="openDeviceDetails(${dev.id},event)" title="${t('INFO')}">ℹ</button>
+        </div>`;
+      }
+
+      // Крючок от вертикальной линии к узлу (для глубины > 0)
+      const indentHtml = depth > 0 ? '<div class="tree-hook"></div>' : '';
+
+      html += `
+        <div class="device-node">
+          <div class="device-row" data-id="${dev.id}" onclick="openDeviceDetails(${dev.id},event)">
+            <div class="device-indent">${indentHtml}</div>
+            <div class="device-icon">${icon}</div>
+            <div class="device-status-dot ${dotClass}"></div>
+            <div class="device-name">${escHtml(dev.name)}</div>
+            ${mustTag}
+            ${ipText}
+            ${adminBtns}
+          </div>
+          <div class="device-children">
+            ${buildTree(dev.id, depth + 1)}
+          </div>
+        </div>`;
+    }
+    return html;
+  }
+
+  const adminSiteActions = currentUser?.role === 'admin' ? `
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="inline-btn" style="width:auto" onclick="openAddDevice(${site.id})">+ Устройство</button>
+      <button class="inline-btn" style="width:auto" onclick="toggleOrderMode()">${editingOrder ? '✓ ' + t('DONE') : '↕ ' + t('ORDER')}</button>
+      <button class="inline-btn" style="width:auto" onclick="openEditSite(${site.id})">✎ Объект</button>
+      <button class="inline-btn" style="width:auto;border-color:var(--red);color:var(--red)" onclick="deleteSite(${site.id})">✕ Удалить объект</button>
+    </div>` : '';
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span class="badge ${c}">${labels[c] || 'Нет данных'}</span>
+      <span style="font-size:10px;color:var(--text2)">${site.offline_count || 0} недоступно</span>
+    </div>
+    <div class="stat-row"><span>Устройств</span><span class="val">${site.device_count || 0}</span></div>
+    <div class="stat-row"><span>${t('COORDS')}</span><span class="val" style="font-size:9px">${site.lat.toFixed(4)}, ${site.lng.toFixed(4)}</span></div>
+
+    <div class="section-label" style="margin-top:18px">TOPOLOGY</div>
+    <div class="tree-legend">
+      <span class="lg"><i class="dot online"></i>${t('ONLINE')}</span>
+      <span class="lg"><i class="dot offline"></i>недоступно</span>
+      <span class="lg"><i class="dot unknown"></i>нет данных</span>
+      <span class="lg"><i class="dot noping"></i>без пинга</span>
+    </div>
+    <div class="device-tree">
+      ${devices.length ? buildTree(null, 0) : '<div style="font-size:11px;color:var(--text2);padding:8px">' + t('NO_DEVICES') + '</div>'}
+    </div>
+    ${adminSiteActions}
+  `;
+}
+
+function closePanel() {
+  selectedSiteId = null;
+  document.getElementById('side-panel').classList.add('collapsed');
+}
+
+// ─────────────────────────────────────────────
+// Device modals
+// ─────────────────────────────────────────────
+const DEVICE_TYPES = [
+  { v: 'gateway',        l: 'Шлюз',              icon: '🌐', pingable: true  },
+  { v: 'switch_managed', l: 'Коммутатор (упр.)', icon: '🔀', pingable: true  },
+  { v: 'switch',         l: 'Коммутатор (неупр.)', icon: '🔀', pingable: false },
+  { v: 'wifi_bridge',    l: 'WiFi мост',         icon: '📶', pingable: true  },
+  { v: 'access_point',   l: 'Точка доступа',     icon: '🛜', pingable: true  },
+  { v: 'device',         l: 'Устройство',        icon: '🖥️', pingable: true  },
+  { v: 'camera',         l: 'Камера',            icon: '🎥', pingable: true  },
+  { v: 'nvr',            l: 'Регистратор',       icon: '📼', pingable: true  },
+];
+const DEVICE_ICONS = Object.fromEntries(DEVICE_TYPES.map(t => [t.v, t.icon]));
+const DEVICE_TYPE_PRIO = { gateway: 0, switch_managed: 1, switch: 2, wifi_bridge: 3, access_point: 4, device: 5, camera: 6, nvr: 7 };
+const PING_INTERVALS = [20, 30, 60, 120, 300, 600];
+const DEFAULT_INTERVAL_BY_TYPE = { gateway: 120, switch_managed: 300, wifi_bridge: 300, access_point: 300, device: 300, camera: 300, nvr: 300 };
+function intervalLabel(s) { return s < 60 ? s + 'с' : (s % 60 === 0 ? s / 60 + 'м' : (s / 60).toFixed(1) + 'м'); }
+function isPingableType(t) { const tt = DEVICE_TYPES.find(x => x.v === t); return tt ? tt.pingable : true; }
+
+function deviceFormHtml(d = {}, allDevices = []) {
+  _formDevices = allDevices;
+  const typeRadios = DEVICE_TYPES.map(t => {
+    const checked = d.type === t.v ? 'checked' : '';
+    return `
+      <label class="type-radio ${checked ? 'selected' : ''}">
+        <input type="radio" name="df-type" value="${t.v}" ${checked} onchange="onDeviceTypeChange(true)">
+        <span class="type-icon">${t.icon}</span>
+        <span class="type-label">${t.l}</span>
+      </label>`;
+  }).join('');
+
+  const curInterval = d.ping_interval || 300;
+  const ivRadios = PING_INTERVALS.map(i =>
+    `<label class="interval-radio ${i === curInterval ? 'selected' : ''}">
+       <input type="radio" name="df-interval" value="${i}" ${i === curInterval ? 'checked' : ''} onchange="onIntervalChange()">
+       <span>${intervalLabel(i)}</span>
+     </label>`
+  ).join('');
+
+  // Родитель — деревом с отступами
+  const byId = Object.fromEntries(allDevices.map(x => [x.id, x]));
+  const kidsOf = pid => allDevices.filter(x => (x.parent_id || null) === (pid || null));
+  const sortDevs = arr => arr.sort((a, b) =>
+    (DEVICE_TYPE_PRIO[a.type] ?? 9) - (DEVICE_TYPE_PRIO[b.type] ?? 9) || (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
+  let parentOpts = ['<option value="">(нет — корневой уровень)</option>'];
+  function addTreeOpts(pid, depth) {
+    for (const x of sortDevs(kidsOf(pid))) {
+      if (String(x.id) === String(d.id || '')) continue;
+      const icon = DEVICE_ICONS[x.type] || '📡';
+      const sel = String(x.id) === String(d.parent_id || '') ? 'selected' : '';
+      parentOpts.push(`<option value="${x.id}" ${sel}>${'&nbsp;&nbsp;'.repeat(depth)}${icon} ${escHtml(x.name)}</option>`);
+      addTreeOpts(x.id, depth + 1);
+    }
+  }
+  addTreeOpts(null, 0); // строим от корня
+
+  return `
+    <div class="field"><label>Название</label>
+      <input id="df-name" value="${escHtml(d.name||'')}">
+    </div>
+    <div class="field"><label>TYPE</label>
+      <div class="type-radios">${typeRadios}</div>
+    </div>
+    <div class="field"><label>PARENT_DEVICE</label>
+      <select id="df-parent">${parentOpts.join('')}</select>
+    </div>
+    <div id="df-ip-wrap" class="field"><label>IP-адрес</label>
+      <input id="df-ip" value="${escHtml(d.ip||'')}" placeholder="192.168.1.1">
+    </div>
+    <div id="df-interval-wrap" class="field"><label>PING_INTERVAL</label>
+      <div class="interval-radios">${ivRadios}</div>
+    </div>
+    <div id="df-must-wrap" class="checkbox-row">
+      <input type="checkbox" id="df-must" ${d.must_be_online!==false&&d.must_be_online!==0?'checked':''}>
+      <label for="df-must">MUST_ONLINE</label>
+    </div>
+  `;
+}
+function onDeviceTypeChange(autoSetInterval = false) {
+  const t = document.querySelector('input[name="df-type"]:checked')?.value;
+  const ipWrap = document.getElementById('df-ip-wrap');
+  const ivWrap = document.getElementById('df-interval-wrap');
+  const mustWrap = document.getElementById('df-must-wrap');
+  if (!ipWrap) return;
+  const noPing = t === 'switch'; // только неуправляемый коммутатор без пинга
+  ipWrap.style.display = noPing ? 'none' : '';
+  ivWrap.style.display = noPing ? 'none' : '';
+  mustWrap.style.display = noPing ? 'none' : '';
+  // подсветка выбранной радиокнопки
+  document.querySelectorAll('.type-radio').forEach(r => r.classList.toggle('selected', r.querySelector('input').checked));
+  // автовыбор интервала по типу (шлюз 2м, остальное 5м) — можно поменять вручную
+  if (autoSetInterval && t && DEFAULT_INTERVAL_BY_TYPE[t] !== undefined) {
+    const want = DEFAULT_INTERVAL_BY_TYPE[t];
+    const iv = document.querySelector(`input[name="df-interval"][value="${want}"]`);
+    if (iv) {
+      iv.checked = true;
+      document.querySelectorAll('.interval-radio').forEach(r => r.classList.toggle('selected', r.querySelector('input').checked));
+    }
+  }
+}
+function onIntervalChange() {
+  document.querySelectorAll('.interval-radio').forEach(r => r.classList.toggle('selected', r.querySelector('input').checked));
+}
+
+async function openAddDevice(siteId, parentId = null) {
+  let allDevices = [];
+  try { allDevices = await apiFetch(`/api/sites/${siteId}/devices`); } catch {}
+  const preselect = { must_be_online: true, parent_id: parentId };
+  showModal(`
+    <h2>${parentId ? t('CHILD_DEVICE') : t('NEW_DEVICE')}</h2>
+    ${deviceFormHtml(preselect, allDevices)}
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="submitAddDevice(${siteId})">ADD</button>
+    </div>
+  `);
+  onDeviceTypeChange();
+  // Предзаполнить IP из родителя (без последнего октета)
+  if (parentId) onParentChange();
+}
+
+function onParentChange() {
+  const sel = document.getElementById('df-parent');
+  const ipEl = document.getElementById('df-ip');
+  if (!sel || !ipEl) return;
+  const pid = parseInt(sel.value || '0');
+  if (!pid) return;
+  // сортируем как в дереве
+  const sorted = [..._formDevices].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
+  const parent = sorted.find(d => d.id === pid);
+  if (!parent) return;
+  let src = parent.ip;
+  if (!src) {
+    // у родителя нет IP — берём IP предыдущего устройства с IP (идём вверх по списку)
+    const idx = sorted.findIndex(d => d.id === pid);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (sorted[i].ip) { src = sorted[i].ip; break; }
+    }
+  }
+  if (!src) return;
+  const m = String(src).match(/^(\d+\.\d+\.\d+)\./);
+  if (m) ipEl.value = m[1] + '.';
+}
+
+function openAddChildDevice(parentId, siteId, e) {
+  e.stopPropagation();
+  openAddDevice(siteId, parentId);
+}
+
+async function submitAddDevice(siteId) {
+  const name = document.getElementById('df-name').value.trim();
+  const type = document.querySelector('input[name="df-type"]:checked')?.value;
+  const ip   = document.getElementById('df-ip')?.value.trim() || null;
+  const interval = parseInt(document.querySelector('input[name="df-interval"]:checked')?.value || '300');
+  const must = document.getElementById('df-must')?.checked ?? true;
+  const parentRaw = document.getElementById('df-parent')?.value;
+  const parentId = parentRaw ? parseInt(parentRaw) : null;
+  if (!name) return;
+  if (!type) { alert('Выберите тип устройства'); return; }
+  const noPing = type === 'switch';
+  await apiFetch('/api/devices', {
+    method: 'POST',
+    body: JSON.stringify({
+      site_id: siteId,
+      parent_id: parentId,
+      name, type,
+      ip: noPing ? null : ip,
+      ping_interval: interval,
+      must_be_online: noPing ? false : must,
+    }),
+  });
+  closeModal();
+  await loadSites();
+  const site = sites.find(s => s.id === siteId);
+  if (site) renderPanel(site);
+}
+
+async function openEditDevice(devId, e) {
+  e.stopPropagation();
+  let dev = null;
+  let allDevices = [];
+  if (selectedSiteId) {
+    allDevices = await apiFetch(`/api/sites/${selectedSiteId}/devices`);
+    dev = allDevices.find(d => d.id === devId);
+  }
+  if (!dev) return;
+
+  showModal(`
+    <h2>${t('EDIT_DEVICE')}</h2>
+    ${deviceFormHtml(dev, allDevices)}
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="submitEditDevice(${devId},${dev.site_id})">SAVE</button>
+    </div>
+  `);
+  onDeviceTypeChange();
+}
+
+async function submitEditDevice(devId, siteId) {
+  const name = document.getElementById('df-name').value.trim();
+  const type = document.querySelector('input[name="df-type"]:checked')?.value;
+  const ip   = document.getElementById('df-ip')?.value.trim() || null;
+  const interval = parseInt(document.querySelector('input[name="df-interval"]:checked')?.value || '300');
+  const must = document.getElementById('df-must')?.checked ?? true;
+  const parentRaw = document.getElementById('df-parent')?.value;
+  const parentId = parentRaw ? parseInt(parentRaw) : null;
+  if (!name) return;
+  if (!type) { alert('Выберите тип устройства'); return; }
+  const noPing = type === 'switch';
+  await apiFetch(`/api/devices/${devId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      name, type,
+      parent_id: parentId,
+      ip: noPing ? null : ip,
+      ping_interval: interval,
+      must_be_online: noPing ? false : must,
+    }),
+  });
+  closeModal();
+  await loadSites();
+  const site = sites.find(s => s.id === siteId);
+  if (site) renderPanel(site);
+}
+
+async function deleteDevice(devId, e, name = '') {
+  e.stopPropagation();
+  const label = name ? `«${name}»` : 'устройство';
+  if (!confirm(`Удалить ${label} и все его дочерние?`)) return;
+  await apiFetch(`/api/devices/${devId}`, { method: 'DELETE' });
+  await loadSites();
+  if (selectedSiteId) {
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (site) renderPanel(site);
+  }
+}
+
+async function openDeviceDetails(devId, e) {
+  e.stopPropagation();
+  let dev = null;
+  try {
+    const all = await apiFetch(`/api/sites/${selectedSiteId}/devices`);
+    dev = all.find(d => d.id === devId);
+  } catch {}
+  if (!dev) return;
+  const t = DEVICE_TYPES.find(x => x.v === dev.type) || {};
+  const statusLabels = { online: t('ONLINE'), offline: t('OFFLINE'), unknown: t('NO_DATA') };
+  showModal(`
+    <h2><span>${t.icon || '📡'} ${escHtml(dev.name)}</span>${currentUser?.role === 'admin' ? `<button class="del-corner" onclick="deleteDevice(${dev.id},event,'${escHtml(dev.name)}')" title="Удалить">🗑</button>` : ''}</h2>
+    <div class="stat-row"><span>${t('TYPE')}</span><span class="val">${escHtml(t.l || dev.type)}</span></div>
+    ${dev.ip ? `<div class="stat-row"><span>IP-адрес</span><span class="val">${escHtml(dev.ip)}</span></div>` : '<div class="stat-row"><span>IP-адрес</span><span class="val">—</span></div>'}
+    <div class="stat-row"><span>${t('STATUS')}</span><span class="val">${statusLabels[dev.status] || dev.status}</span></div>
+    <div class="stat-row"><span>${t('PING_INTERVAL')}</span><span class="val">${intervalLabel(dev.ping_interval || 300)}</span></div>
+    <div class="stat-row"><span>${t('MUST_ONLINE')}</span><span class="val">${dev.must_be_online ? t('YES') : t('NO')}</span></div>
+    ${dev.last_checked ? `<div class="stat-row"><span>${t('CHECKED')}</span><span class="val" style="font-size:10px">${escHtml(dev.last_checked)}</span></div>` : ''}
+    <div class="modal-footer">
+      ${currentUser?.role === 'admin' ? `<button class="btn btn-ghost" onclick="openAddChildDevice(${dev.id},${selectedSiteId},event)">${t('ADD_CHILD')}</button>
+      <button class="btn btn-ghost" onclick="openEditDevice(${dev.id},event)>${t('EDIT')}</button>` : ''}
+      <button class="btn btn-ghost" onclick="openDeviceLog(${dev.id},event)">' + " + t(\'LOG\') + " + '</button>
+      <button class="btn btn-primary" onclick="closeModal()">" + t(\'CLOSE\') + "</button>
+    </div>
+  `);
+}
+
+async function openDeviceLog(devId, e) {
+  e.stopPropagation();
+  const log = await apiFetch(`/api/devices/${devId}/log`);
+  const rows = log.length ? log.map(l => {
+    const cls = l.new_status === 'online' ? 'to-online' : 'to-offline';
+    const arrow = l.old_status ? `${l.old_status} → ${l.new_status}` : l.new_status;
+    const dt = new Date(l.changed_at).toLocaleString('ru');
+    return `<div class="log-entry ${cls}"><span class="log-time">${dt}</span>  ${arrow}</div>`;
+  }).join('') : '<div style="font-size:11px;color:var(--text2)">Лог пуст</div>';
+
+  showModal(`
+    <h2>' + " + t(\'STATUS_LOG\') + " + '</h2>
+    <div class="log-list">${rows}</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Закрыть</button>
+    </div>
+  `);
+}
+
+// ─────────────────────────────────────────────
+// Site edit / delete
+// ─────────────────────────────────────────────
+function openEditSite(siteId) {
+  const site = sites.find(s => s.id === siteId);
+  if (!site) return;
+  showModal(`
+    <h2>" + t(\'EDIT_SITE\') + "</h2>
+    <div class="field"><label>Название</label><input id="es-name" value="${escHtml(site.name)}"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="submitEditSite(${siteId})">Сохранить</button>
+    </div>
+  `);
+}
+
+async function submitEditSite(siteId) {
+  const name = document.getElementById('es-name').value.trim();
+  if (!name) return;
+  await apiFetch(`/api/sites/${siteId}`, { method: 'PUT', body: JSON.stringify({ name }) });
+  closeModal();
+  await loadSites();
+}
+
+async function deleteSite(siteId) {
+  if (!confirm(' + " + t(\'DELETE_SITE_CONF\') + " + ')) return;
+  await apiFetch(`/api/sites/${siteId}`, { method: 'DELETE' });
+  closePanel();
+  await loadSites();
+}
+
+// ─────────────────────────────────────────────
+// Admin tab
+// ─────────────────────────────────────────────
+async function loadAdminTab() {
+  // Админ-разделы только для админа
+  const isAdmin = currentUser?.role === 'admin';
+  document.getElementById('sec-users').style.display = isAdmin ? '' : 'none';
+  document.getElementById('sec-bot-token').style.display = isAdmin ? '' : 'none';
+  await loadNotifications();
+  if (!isAdmin) return;
+  try {
+    const users = await apiFetch('/api/users');
+    const html = users.map(u => `
+      <div class="user-row">
+        <span class="uname">${escHtml(u.username)}</span>
+        <span class="urole ${u.role}">${u.role === 'admin' ? 'админ' : 'менеджер'}</span>
+        ${u.role !== 'admin'
+          ? `<button class="dev-act-btn" onclick="openUserSites(${u.id},'${escHtml(u.username)}')" title="${' + " + t(\'SITE_RIGHTS\') + " + '}">🔒 ${u.site_ids?.length ?? 0}</button>`
+          : ''}
+        ${u.username !== currentUser.username
+          ? `<button class="dev-act-btn del" onclick="deleteUser(${u.id})" title="Удалить">✕</button>`
+          : ''}
+      </div>
+    `).join('');
+    document.getElementById('users-list').innerHTML = html;
+  } catch {}
+
+  // Populate export select
+  try {
+    const siteList = await apiFetch('/api/sites');
+    const sel = document.getElementById('export-site-select');
+    if (sel) {
+      sel.innerHTML = siteList.length
+        ? siteList.map(s => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('')
+        : '<option value="">Нет объектов</option>';
+    }
+  } catch {}
+}
+
+async function doExport() {
+  const sel = document.getElementById('export-site-select');
+  const siteId = sel?.value;
+  if (!siteId) return;
+  const siteName = sel.options[sel.selectedIndex]?.text || 'site';
+  const res = await fetch(`/api/sites/${siteId}/export`, {
+    credentials: 'same-origin'
+  });
+  if (!res.ok) { alert(' + " + t(\'EXPORT_ERR\') + " + '); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pingusha_${siteName.replace(/\s+/g,'_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function doImport() {
+  const fileInput = document.getElementById('import-file');
+  const msg = document.getElementById('import-msg');
+  if (!fileInput.files.length) { msg.textContent = 'Выберите файл'; return; }
+  const text = await fileInput.files[0].text();
+  let data;
+  try { data = JSON.parse(text); } catch { msg.style.color='var(--red)'; msg.textContent=t('BAD_JSON'); return; }
+  msg.style.color = 'var(--text2)';
+  msg.textContent = t('IMPORTING') + '...';
+  try {
+    const res = await apiFetch('/api/import', {
+      method: 'POST',
+      body: JSON.stringify({ data }),
+    });
+    msg.style.color = 'var(--green)';
+    msg.textContent = `✓ ${t('IMPORTED')} (id ${res.new_site_id})`;
+    fileInput.value = '';
+    await loadSites();
+    loadAdminTab();
+  } catch(e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = t('ERROR') + ': ' + e.message;
+  }
+}
+
+function openAddUser() {
+  showModal(`
+    <h2>НОВЫЙ ПОЛЬЗОВАТЕЛЬ</h2>
+    <div class="field"><label data-i18n="LOGIN_USER"></label><input id="nu-login" type="text"></div>
+    <div class="field"><label data-i18n="LOGIN_PASS"></label><input id="nu-pass" type="password"></div>
+    <div class="field"><label>Роль</label>
+      <select id="nu-role">
+        <option value="manager">manager</option>
+        <option value="admin">admin</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="submitAddUser()">Создать</button>
+    </div>
+  `);
+}
+
+async function submitAddUser() {
+  const u = document.getElementById('nu-login').value.trim();
+  const p = document.getElementById('nu-pass').value;
+  const r = document.getElementById('nu-role').value;
+  if (!u || !p) return;
+  await apiFetch('/api/users', { method: 'POST', body: JSON.stringify({ username: u, password: p, role: r }) });
+  closeModal();
+  loadAdminTab();
+}
+
+async function deleteUser(uid) {
+  if (!confirm(' + " + t(\'DELETE_USER_Q\') + " + ')) return;
+  await apiFetch(`/api/users/${uid}`, { method: 'DELETE' });
+  loadAdminTab();
+}
+
+let _userSitesCache = { userId: null, sites: [] };
+let _formDevices = [];  // список устройств для формы (onParentChange)
+
+async function openUserSites(uid, username) {
+  let siteList = [];
+  try { siteList = await apiFetch('/api/sites'); } catch {}
+  let user = null;
+  try {
+    const users = await apiFetch('/api/users');
+    user = users.find(x => x.id === uid);
+  } catch {}
+  _userSitesCache = { userId: uid, sites: siteList };
+  const checked = new Set(user?.site_ids || []);
+  const rows = siteList.map(s => `
+    <label class="site-check">
+      <input type="checkbox" data-site-id="${s.id}" ${checked.has(s.id) ? 'checked' : ''}>
+      <span>${escHtml(s.name)}</span>
+    </label>
+  `).join('');
+  showModal(`
+    <h2>' + " + t(\'MANAGER_RIGHTS\') + " + '</h2>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">${escHtml(username)} — ${" + t(\'SITE_ACCESS\') + "}</div>
+    <div class="site-checks">${rows || '<div style="font-size:11px;color:var(--text2)">Объектов пока нет</div>'}</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="submitUserSites()">Сохранить</button>
+    </div>
+  `);
+}
+
+async function submitUserSites() {
+  const siteIds = [...document.querySelectorAll('.site-check input:checked')].map(i => parseInt(i.dataset.siteId));
+  await apiFetch(`/api/users/${_userSitesCache.userId}/sites`, {
+    method: 'PUT',
+    body: JSON.stringify({ site_ids: siteIds }),
+  });
+  closeModal();
+  loadAdminTab();
+}
+
+async function changePassword() {
+  const o = document.getElementById('cp-old').value;
+  const n = document.getElementById('cp-new').value;
+  const msg = document.getElementById('cp-msg');
+  try {
+    await apiFetch('/api/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ old_password: o, new_password: n }),
+    });
+    msg.style.color = 'var(--green)';
+    msg.textContent = ' + " + t(\'PASS_UPDATED\') + " + ';
+    document.getElementById('cp-old').value = '';
+    document.getElementById('cp-new').value = '';
+  } catch (e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = e.message;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Notifications (Telegram)
+// ─────────────────────────────────────────────
+async function loadNotifications() {
+  const box = document.getElementById('notif-body');
+  if (!box) return;
+  let cfg = null;
+  try { cfg = await apiFetch('/api/notifications'); } catch { box.innerHTML = t('LOAD_ERR'); return; }
+
+  if (!cfg.bot_username) {
+    box.innerHTML = `<div style="color:var(--text2);margin-bottom:10px">${" + t(\'BOT_NOT_SETUP\') + "}.</div>`;
+    return;
+  }
+
+  if (!cfg.bound) {
+    // Не привязан: ссылка на бота + поле ключа
+    box.innerHTML = `
+      <div style="margin-bottom:12px">
+        <a class="inline-btn" style="display:inline-block" target="_blank" href="https://t.me/${escHtml(cfg.bot_username)}">✈️ ${' + " + t(\'OPEN_BOT\') + " + '} @${escHtml(cfg.bot_username)}</a>
+        <div style="font-size:10px;color:var(--text2);margin-top:6px">Нажмите в боте «Start» — он пришлёт ключ</div>
+      </div>
+      <div class="field"><label>${" + t(\'KEY_FROM_BOT\') + "}</label>
+        <input id="nf-key" type="text" placeholder="например: a1b2c3d4e5f6"></div>
+      <button class="btn btn-primary" onclick="bindTelegram()">${' + " + t(\'BIND\') + " + '}</button>
+      <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
+    `;
+    return;
+  }
+
+  // Привязан: статус + отвязать + время + галочки
+  const siteChecks = (cfg.sites || []).map(s => `
+    <label class="site-check">
+      <input type="checkbox" data-site-id="${s.id}" ${(cfg.site_ids_checked || []).includes(s.id) ? 'checked' : ''}>
+      <span>${escHtml(s.name)}</span>
+    </label>`).join('');
+
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="tag must" style="font-size:11px">✅ ${' + " + t(\'BOUND_PREFIX\') + " + '}: ${escHtml(cfg.telegram_username || 'Telegram')}</span>
+      <button class="dev-act-btn" onclick="unbindTelegram()">${' + " + t(\'UNBIND\') + " + '}</button>
+      <button class="dev-act-btn" onclick="testNotify()">🧪 ${" + t(\'TEST\') + "}</button>
+    </div>
+    <div class="field"><label>' + " + t(\'DAILY_CTRL\') + " + '</label>
+      <input type="time" id="nf-time" value="${escHtml(cfg.control_time)}"></div>
+    <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">${" + t(\'NOTIFY_SITES\') + "}</div>
+    <div class="site-checks" style="max-height:30vh">${siteChecks || '<div style="font-size:11px;color:var(--text2)">Объектов нет</div>'}</div>
+    <div style="margin-top:14px">
+      <button class="btn btn-primary" onclick="saveNotifyConfig()">Сохранить</button>
+      <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
+    </div>
+  `;
+}
+
+async function bindTelegram() {
+  const key = document.getElementById('nf-key').value.trim();
+  const msg = document.getElementById('nf-msg');
+  if (!key) { msg.textContent = ' + " + t(\'ENTER_KEY\') + " + '; return; }
+  try {
+    const res = await apiFetch('/api/notifications/bind', { method: 'POST', body: JSON.stringify({ key }) });
+    msg.style.color = 'var(--green)';
+    msg.textContent = `✅ Привязан: ${res.telegram_username}`;
+    setTimeout(loadNotifications, 800);
+  } catch (e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = e.message;
+  }
+}
+
+async function unbindTelegram() {
+  if (!confirm(t('UNBIND_TG_Q'))) return;
+  await apiFetch('/api/notifications/unbind', { method: 'POST' });
+  loadNotifications();
+}
+
+async function testNotify() {
+  const msg = document.getElementById('nf-msg');
+  if (msg) msg.textContent = 'Отправляю…';
+  try {
+    await apiFetch('/api/notifications/test', { method: 'POST' });
+    if (msg) { msg.style.color = 'var(--green)'; msg.textContent = t('SENT_CHECK_TG'); }
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = e.message; }
+  }
+}
+
+async function saveNotifyConfig() {
+  const msg = document.getElementById('nf-msg');
+  const siteIds = [...document.querySelectorAll('#notif-body .site-check input:checked')].map(i => parseInt(i.dataset.siteId));
+  const body = {
+    control_time: document.getElementById('nf-time').value || '10:00',
+    control_enabled: true,
+    site_ids: siteIds,
+  };
+  try {
+    await apiFetch('/api/notifications/config', { method: 'PUT', body: JSON.stringify(body) });
+    if (msg) { msg.style.color = 'var(--green)'; msg.textContent = t('SAVED'); }
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = e.message; }
+  }
+}
+
+async function saveBotToken() {
+  const token = document.getElementById('bt-token').value.trim();
+  const msg = document.getElementById('bt-msg');
+  try {
+    await apiFetch('/api/notifications/token', { method: 'PUT', body: JSON.stringify({ token }) });
+    msg.style.color = 'var(--green)';
+    msg.textContent = token ? '✓ Токен сохранён, бот запущен' : 'Токен очищен';
+  } catch (e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = e.message;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Tabs
+// ─────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-map').classList.toggle('active', tab === 'map');
+  document.getElementById('tab-tiles').classList.toggle('active', tab === 'tiles');
+  document.getElementById('tab-admin').classList.toggle('active', tab === 'admin');
+  document.getElementById('map-wrap').style.display = tab === 'map' ? '' : 'none';
+  document.getElementById('tiles-view').style.display = tab === 'tiles' ? '' : 'none';
+  // side-panel is a fixed overlay, just collapse it when leaving map
+  if (tab !== 'map') {
+    document.getElementById('side-panel').classList.add('collapsed');
+  }
+  const av = document.getElementById('admin-view');
+  av.style.display = tab === 'admin' ? 'block' : 'none';
+  if (tab === 'admin') loadAdminTab();
+  if (tab === 'tiles') renderTiles();
+  if (tab === 'map') fitMapToSites();
+}
+
+// ─────────────────────────────────────────────
+// Modal helpers
+// ─────────────────────────────────────────────
+function showModal(html) {
+  const el = document.createElement('div');
+  el.className = 'modal-overlay';
+  el.id = 'active-modal';
+  el.innerHTML = `<div class="modal">${html}</div>`;
+  el.addEventListener('click', e => { if (e.target === el) closeModal(); });
+  document.getElementById('modals').appendChild(el);
+  document.addEventListener('keydown', escClose);
+}
+
+function closeModal() {
+  document.getElementById('active-modal')?.remove();
+  document.removeEventListener('keydown', escClose);
+}
+
+function escClose(e) { if (e.key === 'Escape') closeModal(); }
+
+// ─────────────────────────────────────────────
+// Utils
+// ─────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+
+<script>
+// ── i18n: полный перевод (ru/en) + переключатель в интерфейсе ──
+const I18N_DICT = {
+  ru: {
+    LOGIN_BTN: "ВОЙТИ", LOGIN_USER: "Логин", LOGIN_PASS: "Пароль",
+    SITES: "ОБЪЕКТЫ", MAP: "КАРТА", SETTINGS: "НАСТРОЙКИ", LOGOUT: "ВЫЙТИ", LOGGED_AS: "вошёл как",
+    BAD_CREDS: "Неверный логин или пароль", TOO_MANY: "Слишком много попыток", SESSION_EXPIRED: "Сессия истекла, войдите снова",
+    OBJECT: "ОБЪЕКТ", NO_SITES: "Объектов пока нет", TOPOLOGY: "ТОПОЛОГИЯ",
+    DELETE_SITE: "Удалить объект", DELETE_SITE_Q: "Удалить объект и все его устройства?", SITE_DOWN: "Объект недоступен",
+    ONLINE: "в сети", OFFLINE: "недоступно", NO_DATA: "нет данных",
+    NO_DEVICES: "Устройств нет", ALL_OK: "Всё в сети", HAS_PROBLEMS: "Есть проблемы",
+    TYPE: "Тип", STATUS: "Статус", PING_INTERVAL: "Интервал пинга", MUST_ONLINE: "Должно быть в сети", CHECKED: "Проверено",
+    YES: "да", NO: "нет",
+    ADD_CHILD: "+ Дочернее", LOG: "Лог", EDIT: "Редактировать", DELETE: "Удалить", CLOSE: "Закрыть",
+    INFO: "Информация", UP: "Вверх", DOWN: "Вниз", DONE: "Готово", ORDER: "Порядок", REFRESH: "Обновить",
+    NEW_SITE: "НОВЫЙ ОБЪЕКТ", EDIT_SITE: "РЕДАКТИРОВАТЬ ОБЪЕКТ",
+    NEW_DEVICE: "НОВОЕ УСТРОЙСТВО", EDIT_DEVICE: "РЕДАКТИРОВАТЬ УСТРОЙСТВО", CHILD_DEVICE: "ДОЧЕРНЕЕ УСТРОЙСТВО",
+    NAME: "Название", ADDRESS: "адрес", COORDS: "Координаты", LAT: "Широта", LNG: "Долгота",
+    SELECT_TYPE: "Выберите тип устройства", PARENT: "Родитель", PARENT_DEVICE: "Родительское устройство",
+    ADD: "Добавить", SAVE: "Сохранить", CANCEL: "Отмена", CREATE: "Создать",
+    NOTIFICATIONS: "Уведомления (Telegram)", BOT_NOT_SETUP: "Бот не настроен (нет токена). Обратитесь к администратору",
+    BOT_TOKEN: "Токен Telegram-бота", BOT_TOKEN_LBL: "Токен", BOT_TOKEN_HINT: "Создайте бота у @BotFather и вставьте токен. Уведомления доступны всем пользователям.",
+    BOUND_PREFIX: "Привязан", UNBIND: "Отвязать", OPEN_BOT: "Открыть бота", ENTER_KEY: "Введите ключ",
+    KEY_FROM_BOT: "Ключ из бота", BIND: "Привязать", TEST: "Тест", SENT_CHECK_TG: "✅ Отправлено — проверьте Telegram",
+    DAILY_CTRL: "Контрольное сообщение каждый день (время барнаульское)", NOTIFY_SITES: "Уведомлять об объектах",
+    USERS: "Пользователи", ADD_USER: "+ Добавить пользователя", DELETE_USER_Q: "Удалить пользователя?",
+    MANAGER_RIGHTS: "ПРАВА МЕНЕДЖЕРА", SITE_RIGHTS: "Права на объекты", SITE_ACCESS: "доступ к объектам",
+    CHANGE_PASS: "Сменить пароль", CUR_PASS: "Текущий пароль", NEW_PASS: "Новый пароль", PASS_UPDATED: "Пароль обновлён",
+    SAVED: "✓ Сохранено", ERROR: "Ошибка",
+    STATUS_LOG: "ЛОГ СТАТУСОВ", LOG_EMPTY: "Лог пуст",
+    EXPORT_ERR: "Ошибка экспорта", BAD_JSON: "Невалидный JSON", IMPORTING: "Импортирую", IMPORTED: "Объект импортирован",
+    LOAD_ERR: "Ошибка загрузки", CONN_ERR: "Ошибка соединения", UNBIND_TG_Q: "Отвязать Telegram?",
+    ONLINE_SUFFIX: "в сети", OFFLINE_SUFFIX: "нет",
+  },
+  en: {
+    LOGIN_BTN: "SIGN IN", LOGIN_USER: "Username", LOGIN_PASS: "Password",
+    SITES: "SITES", MAP: "MAP", SETTINGS: "SETTINGS", LOGOUT: "LOGOUT", LOGGED_AS: "logged in as",
+    BAD_CREDS: "Invalid username or password", TOO_MANY: "Too many attempts", SESSION_EXPIRED: "Session expired, please sign in again",
+    OBJECT: "OBJECT", NO_SITES: "No sites yet", TOPOLOGY: "TOPOLOGY",
+    DELETE_SITE: "Delete site", DELETE_SITE_Q: "Delete site and all its devices?", SITE_DOWN: "Site unavailable",
+    ONLINE: "online", OFFLINE: "offline", NO_DATA: "no data",
+    NO_DEVICES: "No devices", ALL_OK: "All online", HAS_PROBLEMS: "Has issues",
+    TYPE: "Type", STATUS: "Status", PING_INTERVAL: "Ping interval", MUST_ONLINE: "Must be online", CHECKED: "Checked",
+    YES: "yes", NO: "no",
+    ADD_CHILD: "+ Child", LOG: "Log", EDIT: "Edit", DELETE: "Delete", CLOSE: "Close",
+    INFO: "Info", UP: "Up", DOWN: "Down", DONE: "Done", ORDER: "Order", REFRESH: "Refresh",
+    NEW_SITE: "NEW SITE", EDIT_SITE: "EDIT SITE",
+    NEW_DEVICE: "NEW DEVICE", EDIT_DEVICE: "EDIT DEVICE", CHILD_DEVICE: "CHILD DEVICE",
+    NAME: "Name", ADDRESS: "address", COORDS: "Coordinates", LAT: "Latitude", LNG: "Longitude",
+    SELECT_TYPE: "Select device type", PARENT: "Parent", PARENT_DEVICE: "Parent device",
+    ADD: "Add", SAVE: "Save", CANCEL: "Cancel", CREATE: "Create",
+    NOTIFICATIONS: "Notifications (Telegram)", BOT_NOT_SETUP: "Bot is not configured (no token). Contact administrator",
+    BOT_TOKEN: "Telegram bot token", BOT_TOKEN_LBL: "Token", BOT_TOKEN_HINT: "Create a bot with @BotFather and paste the token. Notifications are available to all users.",
+    BOUND_PREFIX: "Bound", UNBIND: "Unbind", OPEN_BOT: "Open bot", ENTER_KEY: "Enter key",
+    KEY_FROM_BOT: "Key from bot", BIND: "Bind", TEST: "Test", SENT_CHECK_TG: "✅ Sent — check Telegram",
+    DAILY_CTRL: "Daily control message (Barnaul time)", NOTIFY_SITES: "Notify about sites",
+    USERS: "Users", ADD_USER: "+ Add user", DELETE_USER_Q: "Delete user?",
+    MANAGER_RIGHTS: "MANAGER RIGHTS", SITE_RIGHTS: "Site rights", SITE_ACCESS: "site access",
+    CHANGE_PASS: "Change password", CUR_PASS: "Current password", NEW_PASS: "New password", PASS_UPDATED: "Password updated",
+    SAVED: "✓ Saved", ERROR: "Error",
+    STATUS_LOG: "STATUS LOG", LOG_EMPTY: "Log is empty",
+    EXPORT_ERR: "Export error", BAD_JSON: "Invalid JSON", IMPORTING: "Importing", IMPORTED: "Site imported",
+    LOAD_ERR: "Load error", CONN_ERR: "Connection error", UNBIND_TG_Q: "Unbind Telegram?",
+    ONLINE_SUFFIX: "online", OFFLINE_SUFFIX: "down",
+  },
+};
+let _lang = detectLang();
+function t(key) {
+  const d = I18N_DICT[_lang] || I18N_DICT.ru;
+  return d[key] !== undefined ? d[key] : (I18N_DICT.ru[key] !== undefined ? I18N_DICT.ru[key] : key);
+}
+function detectLang() {
+  try {
+    const q = new URLSearchParams(location.search).get('lang');
+    if (q === 'ru' || q === 'en') return q;
+    const saved = localStorage.getItem('pingusha_lang');
+    if (saved === 'ru' || saved === 'en') return saved;
+  } catch (e) {}
+  return (navigator.language || 'ru').toLowerCase().startsWith('en') ? 'en' : 'ru';
+}
+function setLang(lang) {
+  _lang = lang;
+  try { localStorage.setItem('pingusha_lang', lang); } catch (e) {}
+  applyI18n();
+}
+function toggleLang() {
+  setLang(_lang === 'ru' ? 'en' : 'ru');
+  // перерисовываем текущий экран
+  const site = sites.find(s => s.id === selectedSiteId);
+  if (selectedSiteId && site) renderPanel(site); else renderTiles();
+  loadAdminTab();
+}
+function applyI18n() {
+  const dict = I18N_DICT[_lang] || I18N_DICT.ru;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (dict[key]) el.textContent = dict[key];
+  });
+  const tg = document.getElementById('lang-toggle');
+  if (tg) tg.textContent = _lang === 'ru' ? 'EN' : 'RU';
+  renderTiles();
+  if (window.map && sites.length) { updateMapVisibility(); }
+}
+// переключатель языка
+document.addEventListener('DOMContentLoaded', () => {
+  const tb = document.querySelector('#topbar');
+  if (tb && !document.getElementById('lang-toggle')) {
+    const btn = document.createElement('button');
+    btn.id = 'lang-toggle';
+    btn.className = 'pill';
+    btn.style.cssText = 'cursor:pointer';
+    btn.textContent = _lang === 'ru' ? 'EN' : 'RU';
+    btn.title = 'Language / Язык';
+    btn.onclick = toggleLang;
+    tb.appendChild(btn);
+  }
+});
+applyI18n();
+</script>
+</body>
+</html>

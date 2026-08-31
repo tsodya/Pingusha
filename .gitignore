@@ -1,0 +1,18 @@
+# Секреты
+.env
+*.env
+!locales/*.json
+
+# База данных (реальные данные пользователя)
+*.db
+*.db-journal
+*.sqlite*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Прочее
+.DS_Store
+*.log
