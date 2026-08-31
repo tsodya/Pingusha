@@ -443,7 +443,7 @@ body {
 .type-radio.selected { border-color: var(--accent); background: rgba(0,229,255,.08); }
 .type-radio.selected .type-label { color: var(--text); }
 
-/* ── ${t('PING_INTERVAL')}: круглые кнопки ── */
+/* ── : круглые кнопки ── */
 .interval-radios { display: flex; flex-wrap: wrap; gap: 8px; }
 .interval-radio {
   display: flex; align-items: center; justify-content: center;
@@ -836,12 +836,12 @@ body {
     <h2 data-i18n="SETTINGS">НАСТРОЙКИ</h2>
     <div class="admin-section">
       <h3 data-i18n="NOTIFICATIONS" data-i18n="NOTIFICATIONS">/h3>
-      <div id="notif-body" style="font-size:12px;color:var(--text2)">${t('LOADING')}…</div>
+      <div id="notif-body" style="font-size:12px;color:var(--text2)">…</div>
     </div>
     <div class="admin-section" id="sec-users" style="display:none">
       <h3 data-i18n="USERS"></h3>
       <div id="users-list"></div>
-      <button class="inline-btn" style="margin-top:10px" onclick="openAddUser()">+ ${t('ADD_USER')}</button>
+      <button class="inline-btn" style="margin-top:10px" onclick="openAddUser()" data-i18n="ADD_USER">+ </button>
     </div>
     <div class="admin-section">
       <h3 data-i18n="CHANGE_PASS" data-i18n="CHANGE_PASS">/h3>
@@ -1774,7 +1774,7 @@ async function openDeviceDetails(devId, e) {
     <div class="stat-row"><span>${t('TYPE')}</span><span class="val">${escHtml(t.l || dev.type)}</span></div>
     ${dev.ip ? `<div class="stat-row"><span>IP-${t('ADDRESS')}</span><span class="val">${escHtml(dev.ip)}</span></div>` : '<div class="stat-row"><span>IP-' + t('ADDRESS') + '</span><span class="val">—</span></div>'}
     <div class="stat-row"><span>${t('STATUS')}</span><span class="val">${statusLabels[dev.status] || dev.status}</span></div>
-    <div class="stat-row"><span>${t('PING_INTERVAL')}</span><span class="val">${intervalLabel(dev.ping_interval || 300)}</span></div>
+    <div class="stat-row"><span></span><span class="val">${intervalLabel(dev.ping_interval || 300)}</span></div>
     <div class="stat-row"><span>${t('MUST_ONLINE')}</span><span class="val">${dev.must_be_online ? t('YES') : t('NO')}</span></div>
     ${dev.last_checked ? `<div class="stat-row"><span>${t('CHECKED')}</span><span class="val" style="font-size:10px">${escHtml(dev.last_checked)}</span></div>` : ''}
     <div class="modal-footer">
@@ -1850,7 +1850,7 @@ async function loadAdminTab() {
     const html = users.map(u => `
       <div class="user-row">
         <span class="uname">${escHtml(u.username)}</span>
-        <span class="urole ${u.role}">${u.role === 'admin' ? 'админ' : 'менеджер'}</span>
+        <span class="urole ${u.role}">${u.role === 'admin' ? t('ADMIN') : t('MANAGER')}</span>
         ${u.role !== 'admin'
           ? `<button class="dev-act-btn" onclick="openUserSites(${u.id},'${escHtml(u.username)}')" title="${' + " + t(\'SITE_RIGHTS\') + " + '}">🔒 ${u.site_ids?.length ?? 0}</button>`
           : ''}
