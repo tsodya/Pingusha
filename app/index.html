@@ -95,6 +95,7 @@ body {
 .pill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.07); }
 #user-info { font-size: 11px; color: var(--text2); }
 #user-info span { color: var(--accent2); }
+.ver { font-size: 9px; color: var(--text2); font-weight: 400; margin-left: 4px; }
 
 /* ── Layout ── */
 #main {
@@ -771,8 +772,8 @@ body {
 <!-- Login -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>PINGUSHA</h1>
-    <p>NETWORK MONITORING SYSTEM</p>
+    <h1>PINGUSHA <span class="ver">v1.0.0</span></h1>
+    <p>NETWORK MONITORING SYSTEM <span class="ver">v1.0.0</span></p>
     <div class="field">
       <label data-i18n="LOGIN_USER"></label>
       <input id="l-user" type="text" placeholder="admin" autocomplete="username">
@@ -788,7 +789,7 @@ body {
 
 <!-- Topbar -->
 <div id="topbar">
-  <h1>PINGUSHA</h1>
+  <h1>PINGUSHA <span class="ver">v1.0.0</span></h1>
   <button class="pill active" id="tab-tiles" onclick="switchTab('tiles')" data-i18n="SITES"></button>
   <button class="pill" id="tab-map" onclick="switchTab('map')" data-i18n="MAP"></button>
   <button class="pill" id="tab-admin" onclick="switchTab('admin')" style="display:none" data-i18n="SETTINGS"></button>

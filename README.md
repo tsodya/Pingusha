@@ -1,5 +1,7 @@
 # Pingusha
 
+**Version: 1.0.0**
+
 Self-hosted network monitor: **map of sites, device tree, Telegram notifications**.
 
 Designed for monitoring cameras/NVRs/network equipment across remote sites

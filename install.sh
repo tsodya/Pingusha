@@ -9,7 +9,7 @@ BOLD='\033[1m'; NC='\033[0m'
 
 echo ""
 echo "=============================================="
-echo -e "  ${BOLD}Pingusha${NC} — self-hosted network monitor"
+echo -e "  ${BOLD}Pingusha v1.0.0${NC} — self-hosted network monitor"
 echo "  карта объектов · дерево устройств · Telegram"
 echo "=============================================="
 echo ""
