@@ -2190,7 +2190,8 @@ function detectLang() {
     const saved = localStorage.getItem('pingusha_lang');
     if (saved === 'ru' || saved === 'en') return saved;
   } catch (e) {}
-  return (navigator.language || 'ru').toLowerCase().startsWith('en') ? 'en' : 'ru';
+  const nl = (navigator.language || 'en').toLowerCase();
+  return nl.startsWith('ru') ? 'ru' : 'en';
 }
 function setLang(lang) {
   _lang = lang;

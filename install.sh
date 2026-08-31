@@ -15,8 +15,8 @@ echo "=============================================="
 echo ""
 
 # ── 1. Language (interface, not installer) ───────────
-# Installer is always English. UI language: ru/en (default ru, changeable in-app).
-APP_LANG="${APP_LANG:-ru}"
+# Installer is always English. UI language: ru/en (default en, changeable in-app).
+APP_LANG="${APP_LANG:-en}"
 
 # ── 2. Install directory ─────────────────────────────
 INSTALL_DIR="${PINGUSHA_DIR:-$HOME/pingusha}"
