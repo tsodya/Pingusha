@@ -789,7 +789,7 @@ body {
 
 <!-- Topbar -->
 <div id="topbar">
-  <h1>PINGUSHA <span class="ver">v1.0.1</span></h1>
+  <h1>PINGUSHA</h1>
   <button class="pill active" id="tab-tiles" onclick="switchTab('tiles')" data-i18n="SITES"></button>
   <button class="pill" id="tab-map" onclick="switchTab('map')" data-i18n="MAP"></button>
   <button class="pill" id="tab-admin" onclick="switchTab('admin')" style="display:none" data-i18n="SETTINGS"></button>
@@ -805,6 +805,12 @@ body {
     <div id="map"></div>
     <div id="map-controls" style="display:none">
       <button class="map-btn active" id="btn-add-site" onclick="toggleAddSite()" style="display:none">+ OBJECT</button>
+      <select id="map-source" onchange="setMapSource(this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px">
+        <option value="carto">CARTO</option>
+        <option value="osm">OSM</option>
+        <option value="dark">Dark</option>
+        <option value="sat">Satellite</option>
+      </select>
     </div>
   </div>
 
@@ -999,6 +1005,23 @@ async function apiFetch(path, opts = {}) {
 // ─────────────────────────────────────────────
 // Map init
 // ─────────────────────────────────────────────
+const MAP_SOURCES = {
+  carto: { name: 'CARTO', tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'] },
+  osm:   { name: 'OSM',   tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'] },
+  dark:  { name: 'Dark',  tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', 'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', 'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'] },
+  sat:   { name: 'Satellite', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'] },
+};
+
+function setMapSource(key) {
+  const src = MAP_SOURCES[key];
+  if (!src || !map) return;
+  const s = map.getSource('carto');
+  if (s) s.setTiles(src.tiles);
+  try { localStorage.setItem('pingusha_map', key); } catch (e) {}
+  const sel = document.getElementById('map-source');
+  if (sel) sel.value = key;
+}
+
 function initMap() {
   if (map) return;
   maplibregl.setRTLTextPlugin('', null, true);
@@ -1023,15 +1046,17 @@ function initMap() {
     },
     center: [82.9, 54.5],
     zoom: 5,
-    // без логотипа MapLibre; attribution © OSM/CARTO обязательна по лицензии
-    logoControl: false,
-    attributionControl: { compact: true },
   });
 
   // Custom zoom control position
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-  map.on('load', () => { loadSites(); });
+  map.on('load', () => {
+    let saved = null;
+    try { saved = localStorage.getItem('pingusha_map'); } catch (e) {}
+    if (saved && MAP_SOURCES[saved]) setMapSource(saved);
+    loadSites();
+  });
   map.on('click', onMapClick);
   map.on('zoom', updateMapVisibility);
   map.on('moveend', updateMapVisibility);
@@ -2015,7 +2040,7 @@ async function loadNotifications() {
         <a class="inline-btn" style="display:inline-block" target="_blank" href="https://t.me/${escHtml(cfg.bot_username)}">✈️ ${' + " + t(\'OPEN_BOT\') + " + '} @${escHtml(cfg.bot_username)}</a>
         <div style="font-size:10px;color:var(--text2);margin-top:6px">Нажмите в боте «Start» — он пришлёт ключ</div>
       </div>
-      <div class="field"><label>${" + t(\'KEY_FROM_BOT\') + "}</label>
+      <div class="field"><label>${t('KEY_FROM_BOT')}</label>
         <input id="nf-key" type="text" placeholder="например: a1b2c3d4e5f6"></div>
       <button class="btn btn-primary" onclick="bindTelegram()">${' + " + t(\'BIND\') + " + '}</button>
       <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
@@ -2181,9 +2206,9 @@ const I18N_DICT = {
     SELECT_TYPE: "Выберите тип устройства", PARENT: "Родитель", PARENT_DEVICE: "Родительское устройство",
     ADD: "Добавить", SAVE: "Сохранить", CANCEL: "Отмена", CREATE: "Создать",
     NOTIFICATIONS: "Уведомления (Telegram)", BOT_NOT_SETUP: "Бот не настроен (нет токена). Обратитесь к администратору",
-    BOT_TOKEN: "Токен Telegram-бота", BOT_TOKEN_LBL: "Токен", BOT_TOKEN_HINT: "Создайте бота у @BotFather и вставьте токен. Уведомления доступны всем пользователям.",
+    BOT_TOKEN: "Токен Telegram-бота", BOT_TOKEN_LBL: "Токен бота (от @BotFather)", BOT_TOKEN_HINT: "Создайте бота у @BotFather и вставьте токен. Уведомления доступны всем пользователям.",
     BOUND_PREFIX: "Привязан", UNBIND: "Отвязать", OPEN_BOT: "Открыть бота", ENTER_KEY: "Введите ключ",
-    KEY_FROM_BOT: "Ключ из бота", BIND: "Привязать", TEST: "Тест", SENT_CHECK_TG: "✅ Отправлено — проверьте Telegram",
+    KEY_FROM_BOT: "Ключ из бота (ответ на /start)", BIND: "Привязать", TEST: "Тест", SENT_CHECK_TG: "✅ Отправлено — проверьте Telegram",
     DAILY_CTRL: "Контрольное сообщение каждый день (время барнаульское)", NOTIFY_SITES: "Уведомлять об объектах",
     USERS: "Пользователи", ADD_USER: "+ Добавить пользователя", DELETE_USER_Q: "Удалить пользователя?",
     MANAGER_RIGHTS: "ПРАВА МЕНЕДЖЕРА", SITE_RIGHTS: "Права на объекты", SITE_ACCESS: "доступ к объектам",
@@ -2212,9 +2237,9 @@ const I18N_DICT = {
     SELECT_TYPE: "Select device type", PARENT: "Parent", PARENT_DEVICE: "Parent device",
     ADD: "Add", SAVE: "Save", CANCEL: "Cancel", CREATE: "Create",
     NOTIFICATIONS: "Notifications (Telegram)", BOT_NOT_SETUP: "Bot is not configured (no token). Contact administrator",
-    BOT_TOKEN: "Telegram bot token", BOT_TOKEN_LBL: "Token", BOT_TOKEN_HINT: "Create a bot with @BotFather and paste the token. Notifications are available to all users.",
+    BOT_TOKEN: "Telegram bot token", BOT_TOKEN_LBL: "Bot token (from @BotFather)", BOT_TOKEN_HINT: "Create a bot with @BotFather and paste the token. Notifications are available to all users.",
     BOUND_PREFIX: "Bound", UNBIND: "Unbind", OPEN_BOT: "Open bot", ENTER_KEY: "Enter key",
-    KEY_FROM_BOT: "Key from bot", BIND: "Bind", TEST: "Test", SENT_CHECK_TG: "✅ Sent — check Telegram",
+    KEY_FROM_BOT: "Key from bot (/start reply)", BIND: "Bind", TEST: "Test", SENT_CHECK_TG: "✅ Sent — check Telegram",
     DAILY_CTRL: "Daily control message (Barnaul time)", NOTIFY_SITES: "Notify about sites",
     USERS: "Users", ADD_USER: "+ Add user", DELETE_USER_Q: "Delete user?",
     MANAGER_RIGHTS: "MANAGER RIGHTS", SITE_RIGHTS: "Site rights", SITE_ACCESS: "site access",
