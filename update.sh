@@ -15,6 +15,16 @@ echo "→ Каталог: $INSTALL_DIR"
 echo "→ Обновление кода (git pull)..."
 git pull --ff-only
 
+# Автоматический бэкап БД перед пересборкой
+BACKUP_DIR="$INSTALL_DIR/backups"
+mkdir -p "$BACKUP_DIR"
+STAMP=$(date +%Y%m%d-%H%M%S)
+if docker run --rm -v pingusha-data:/data -v "$BACKUP_DIR":/backup alpine tar czf "/backup/pingusha-db-$STAMP.tar.gz" -C /data . 2>/dev/null; then
+  echo "→ Бэкап БД: backups/pingusha-db-$STAMP.tar.gz"
+else
+  echo "→ ⚠️ Бэкап не удался (нет volume pingusha-data? пропускаем)"
+fi
+
 echo "→ Пересборка контейнера..."
 docker compose up -d --build
 
