@@ -2,6 +2,8 @@
 
 **Version: 1.0.0**
 
+🌐 [English](README.md) | [Русский](README.ru.md)
+
 Self-hosted network monitor: **map of sites, device tree, Telegram notifications**.
 
 Designed for monitoring cameras/NVRs/network equipment across remote sites
@@ -21,7 +23,7 @@ Designed for monitoring cameras/NVRs/network equipment across remote sites
 ## Install (one command)
 
 ```bash
-curl -fsSL https://github.com/tsodya/pingusha/raw/main/install.sh | bash
+curl -fsSL https://github.com/tsodya/Pingusha/raw/main/install.sh | bash
 ```
 
 The script will ask for the language (ru/en), optional Telegram bot token,
@@ -30,7 +32,7 @@ and start everything with Docker.
 ### Manual install
 
 ```bash
-git clone https://github.com/tsodya/pingusha
+git clone https://github.com/tsodya/Pingusha
 cd pingusha
 cp .env.example .env        # set TELEGRAM_TOKEN (optional) and LANG
 docker compose up -d --build

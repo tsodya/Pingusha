@@ -38,7 +38,7 @@ command -v docker compose >/dev/null 2>&1 || { echo "❌ docker compose не н�
 
 # ── 4. Скачивание кода (если каталог пуст) ───────────
 if [ ! -f docker-compose.yml ]; then
-  REPO_URL="${PINGUSHA_REPO:-https://github.com/tsodya/pingusha}"
+  REPO_URL="${PINGUSHA_REPO:-https://github.com/tsodya/Pingusha}"
   echo "→ Скачивание кода из $REPO_URL ..."
   if command -v git >/dev/null 2>&1; then
     git clone --depth 1 "$REPO_URL" . || { echo "❌ git clone failed"; exit 1; }
