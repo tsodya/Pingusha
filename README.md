@@ -9,6 +9,12 @@ Self-hosted network monitor: **map of sites, device tree, Telegram notifications
 Designed for monitoring cameras/NVRs/network equipment across remote sites
 (Russia-friendly: works fully self-hosted, no external dependencies).
 
+## About
+
+I am a system administrator maintaining many remote sites. I spent a long time looking for a simple monitoring system that tracks equipment health via ICMP pings. Zabbix was too heavyweight, and nothing simpler existed — so I wrote this myself (with the help of an AI assistant).
+
+Pingusha sends alerts when devices go offline, and the device tree makes it instantly clear where someone pulled a cable out of a port or a switch lost power.
+
 ## Features
 
 - 🗺️ **Map** of sites with clustering (green ring / red arc = problem share)
