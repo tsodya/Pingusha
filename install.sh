@@ -64,30 +64,20 @@ else
   echo "→ Code already present, skipping download"
 fi
 
-# ── 5. Telegram bot token (optional) ──────────────────
-# Important: when run via pipe (curl | bash), stdin is the script itself.
-# Redirect input to the terminal so `read` works.
-if [ ! -t 0 ]; then
-  if [ -r /dev/tty ]; then
-    exec </dev/tty
-  fi
-fi
-if [ -z "$TELEGRAM_TOKEN" ]; then
-  read -rp "Telegram bot token (optional, Enter to skip): " TELEGRAM_TOKEN
-fi
-
-# ── 6. Admin password ─────────────────────────────────
+# ── 5. Admin password ─────────────────────────────────
 if [ -z "$ADMIN_PASSWORD" ]; then
   ADMIN_PASSWORD="$(openssl rand -base64 15 2>/dev/null | tr -dc 'A-Za-z0-9' | head -c 16 || echo "pingusha$(date +%s)")"
 fi
 
-# ── 7. .env ──────────────────────────────────────────
+# ── 6. .env ──────────────────────────────────────────
+# Telegram bot token is NOT set here — admin enters it in the web UI
+# (Settings → Telegram bot token). The app falls back to the DB value.
 if [ -f .env ]; then
-  echo "→ .env exists — keeping it (password and token unchanged)"
+  echo "→ .env exists — keeping it (password unchanged)"
   SHOW_PASSWORD=0
 else
   cat > .env <<EOF
-TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+TELEGRAM_TOKEN=
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 LANG=${APP_LANG}
 EOF
@@ -95,7 +85,7 @@ EOF
   SHOW_PASSWORD=1
 fi
 
-# ── 8. Launch ────────────────────────────────────────
+# ── 7. Launch ────────────────────────────────────────
 echo "→ Starting container..."
 docker compose up -d --build
 

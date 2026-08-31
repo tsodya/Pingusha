@@ -58,8 +58,8 @@ Pulls the latest code and rebuilds the container. The `.env` (admin password, bo
 ## Telegram bot setup
 
 1. Create a bot via [@BotFather](https://t.me/BotFather) → get the token
-2. Set `TELEGRAM_TOKEN` in `.env` and restart: `docker compose up -d`
-3. In the app: Settings → Notifications → open the bot → `/start` → paste the key → bind
+2. In the app: **Settings → Telegram bot token** (admin) → paste the token → Save
+3. Settings → Notifications → «Open bot» → `/start` → paste the key → «Bind»
 4. Press «🧪 Test» to check delivery
 
 ## Backup
