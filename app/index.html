@@ -443,7 +443,7 @@ body {
 .type-radio.selected { border-color: var(--accent); background: rgba(0,229,255,.08); }
 .type-radio.selected .type-label { color: var(--text); }
 
-/* ── Интервал пинга: круглые кнопки ── */
+/* ── ${t('PING_INTERVAL')}: круглые кнопки ── */
 .interval-radios { display: flex; flex-wrap: wrap; gap: 8px; }
 .interval-radio {
   display: flex; align-items: center; justify-content: center;
@@ -836,12 +836,12 @@ body {
     <h2 data-i18n="SETTINGS">НАСТРОЙКИ</h2>
     <div class="admin-section">
       <h3 data-i18n="NOTIFICATIONS" data-i18n="NOTIFICATIONS">/h3>
-      <div id="notif-body" style="font-size:12px;color:var(--text2)">Загрузка…</div>
+      <div id="notif-body" style="font-size:12px;color:var(--text2)">${t('LOADING')}…</div>
     </div>
     <div class="admin-section" id="sec-users" style="display:none">
       <h3 data-i18n="USERS"></h3>
       <div id="users-list"></div>
-      <button class="inline-btn" style="margin-top:10px" onclick="openAddUser()">+ Добавить пользователя</button>
+      <button class="inline-btn" style="margin-top:10px" onclick="openAddUser()">+ ${t('ADD_USER')}</button>
     </div>
     <div class="admin-section">
       <h3 data-i18n="CHANGE_PASS" data-i18n="CHANGE_PASS">/h3>
@@ -1114,7 +1114,7 @@ function renderTiles() {
     const offline = s.devices_offline ?? 0;
     const total = s.devices_total ?? 0;
     const meta = total === 0
-      ? 'устройств нет'
+      ? t('NO_DEVICES2')
       : offline > 0
         ? `<span class="tile-off">${online} ${t('ONLINE')} · ${offline} ${t('NO')}</span>`
         : `<span class="tile-on">${online} ${t('ONLINE')}</span>`;
@@ -1448,7 +1448,7 @@ async function renderPanel(site) {
       const mustTag = ''; // «обяз» убран из дерева; функционал must_be_online остался в карточке
       const ipText = ''; // IP больше не показываем в дереве — в карточке устройства
 
-      // В режиме «Порядок»: стрелки ↑↓ вместо кнопки информации (у шлюза стрелок нет)
+      // В режиме «${t('ORDER')}»: стрелки ↑↓ вместо кнопки информации (у шлюза стрелок нет)
       let adminBtns;
       if (editingOrder && dev.type !== 'gateway') {
         const upBtn = idx > 0
@@ -1487,27 +1487,27 @@ async function renderPanel(site) {
 
   const adminSiteActions = currentUser?.role === 'admin' ? `
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-      <button class="inline-btn" style="width:auto" onclick="openAddDevice(${site.id})">+ Устройство</button>
+      <button class="inline-btn" style="width:auto" onclick="openAddDevice(${site.id})">+ ${t('T_DEVICE')}</button>
       <button class="inline-btn" style="width:auto" onclick="toggleOrderMode()">${editingOrder ? '✓ ' + t('DONE') : '↕ ' + t('ORDER')}</button>
       <button class="inline-btn" style="width:auto" onclick="moveSiteMode(${site.id})">📍 ${t('MOVE')}</button>
       <button class="inline-btn" style="width:auto" onclick="openEditSite(${site.id})">✎ Объект</button>
-      <button class="inline-btn" style="width:auto;border-color:var(--red);color:var(--red)" onclick="deleteSite(${site.id})">✕ Удалить объект</button>
+      <button class="inline-btn" style="width:auto;border-color:var(--red);color:var(--red)" onclick="deleteSite(${site.id})">✕ ${t('DELETE_SITE')}</button>
     </div>` : '';
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <span class="badge ${c}">${labels[c] || 'Нет данных'}</span>
-      <span style="font-size:10px;color:var(--text2)">${site.offline_count || 0} недоступно</span>
+      <span style="font-size:10px;color:var(--text2)">${site.offline_count || 0} ${t('OFFLINE')}</span>
     </div>
-    <div class="stat-row"><span>Устройств</span><span class="val">${site.device_count || 0}</span></div>
+    <div class="stat-row"><span>${t('DEVICES')}</span><span class="val">${site.device_count || 0}</span></div>
     <div class="stat-row"><span>${t('COORDS')}</span><span class="val" style="font-size:9px">${site.lat.toFixed(4)}, ${site.lng.toFixed(4)}</span></div>
 
     <div class="section-label" style="margin-top:18px">TOPOLOGY</div>
     <div class="tree-legend">
       <span class="lg"><i class="dot online"></i>${t('ONLINE')}</span>
-      <span class="lg"><i class="dot offline"></i>недоступно</span>
-      <span class="lg"><i class="dot unknown"></i>нет данных</span>
-      <span class="lg"><i class="dot noping"></i>без пинга</span>
+      <span class="lg"><i class="dot offline"></i>${t('OFFLINE')}</span>
+      <span class="lg"><i class="dot unknown"></i>${t('NO_DATA')}</span>
+      <span class="lg"><i class="dot noping"></i>${t('NO_PING')}</span>
     </div>
     <div class="device-tree">
       ${devices.length ? buildTree(null, 0) : '<div style="font-size:11px;color:var(--text2);padding:8px">' + t('NO_DEVICES') + '</div>'}
@@ -1566,7 +1566,7 @@ function deviceFormHtml(d = {}, allDevices = []) {
   const kidsOf = pid => allDevices.filter(x => (x.parent_id || null) === (pid || null));
   const sortDevs = arr => arr.sort((a, b) =>
     (DEVICE_TYPE_PRIO[a.type] ?? 9) - (DEVICE_TYPE_PRIO[b.type] ?? 9) || (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
-  let parentOpts = ['<option value="">(нет — корневой уровень)</option>'];
+  let parentOpts = ['<option value="">(нет — ' + t('ROOT_LEVEL') + ')</option>'];
   function addTreeOpts(pid, depth) {
     for (const x of sortDevs(kidsOf(pid))) {
       if (String(x.id) === String(d.id || '')) continue;
@@ -1579,7 +1579,7 @@ function deviceFormHtml(d = {}, allDevices = []) {
   addTreeOpts(null, 0); // строим от корня
 
   return `
-    <div class="field"><label>Название</label>
+    <div class="field"><label>${t('NAME')}</label>
       <input id="df-name" value="${escHtml(d.name||'')}">
     </div>
     <div class="field"><label>TYPE</label>
@@ -1588,7 +1588,7 @@ function deviceFormHtml(d = {}, allDevices = []) {
     <div class="field"><label>PARENT_DEVICE</label>
       <select id="df-parent">${parentOpts.join('')}</select>
     </div>
-    <div id="df-ip-wrap" class="field"><label>IP-адрес</label>
+    <div id="df-ip-wrap" class="field"><label>IP-${t('ADDRESS')}</label>
       <input id="df-ip" value="${escHtml(d.ip||'')}" placeholder="192.168.1.1">
     </div>
     <div id="df-interval-wrap" class="field"><label>PING_INTERVAL</label>
@@ -1634,7 +1634,7 @@ async function openAddDevice(siteId, parentId = null) {
     <h2>${parentId ? t('CHILD_DEVICE') : t('NEW_DEVICE')}</h2>
     ${deviceFormHtml(preselect, allDevices)}
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
       <button class="btn btn-primary" onclick="submitAddDevice(${siteId})">ADD</button>
     </div>
   `);
@@ -1680,7 +1680,7 @@ async function submitAddDevice(siteId) {
   const parentRaw = document.getElementById('df-parent')?.value;
   const parentId = parentRaw ? parseInt(parentRaw) : null;
   if (!name) return;
-  if (!type) { alert('Выберите тип устройства'); return; }
+  if (!type) { alert(t('SELECT_TYPE')); return; }
   const noPing = type === 'switch';
   await apiFetch('/api/devices', {
     method: 'POST',
@@ -1713,7 +1713,7 @@ async function openEditDevice(devId, e) {
     <h2>${t('EDIT_DEVICE')}</h2>
     ${deviceFormHtml(dev, allDevices)}
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
       <button class="btn btn-primary" onclick="submitEditDevice(${devId},${dev.site_id})">SAVE</button>
     </div>
   `);
@@ -1729,7 +1729,7 @@ async function submitEditDevice(devId, siteId) {
   const parentRaw = document.getElementById('df-parent')?.value;
   const parentId = parentRaw ? parseInt(parentRaw) : null;
   if (!name) return;
-  if (!type) { alert('Выберите тип устройства'); return; }
+  if (!type) { alert(t('SELECT_TYPE')); return; }
   const noPing = type === 'switch';
   await apiFetch(`/api/devices/${devId}`, {
     method: 'PUT',
@@ -1750,7 +1750,7 @@ async function submitEditDevice(devId, siteId) {
 async function deleteDevice(devId, e, name = '') {
   e.stopPropagation();
   const label = name ? `«${name}»` : 'устройство';
-  if (!confirm(`Удалить ${label} и все его дочерние?`)) return;
+  if (!confirm(`Удалить ${label} ${t('AND_CHILDREN')}?`)) return;
   await apiFetch(`/api/devices/${devId}`, { method: 'DELETE' });
   await loadSites();
   if (selectedSiteId) {
@@ -1772,7 +1772,7 @@ async function openDeviceDetails(devId, e) {
   showModal(`
     <h2><span>${t.icon || '📡'} ${escHtml(dev.name)}</span>${currentUser?.role === 'admin' ? `<button class="del-corner" onclick="deleteDevice(${dev.id},event,'${escHtml(dev.name)}')" title="Удалить">🗑</button>` : ''}</h2>
     <div class="stat-row"><span>${t('TYPE')}</span><span class="val">${escHtml(t.l || dev.type)}</span></div>
-    ${dev.ip ? `<div class="stat-row"><span>IP-адрес</span><span class="val">${escHtml(dev.ip)}</span></div>` : '<div class="stat-row"><span>IP-адрес</span><span class="val">—</span></div>'}
+    ${dev.ip ? `<div class="stat-row"><span>IP-${t('ADDRESS')}</span><span class="val">${escHtml(dev.ip)}</span></div>` : '<div class="stat-row"><span>IP-' + t('ADDRESS') + '</span><span class="val">—</span></div>'}
     <div class="stat-row"><span>${t('STATUS')}</span><span class="val">${statusLabels[dev.status] || dev.status}</span></div>
     <div class="stat-row"><span>${t('PING_INTERVAL')}</span><span class="val">${intervalLabel(dev.ping_interval || 300)}</span></div>
     <div class="stat-row"><span>${t('MUST_ONLINE')}</span><span class="val">${dev.must_be_online ? t('YES') : t('NO')}</span></div>
@@ -1794,13 +1794,13 @@ async function openDeviceLog(devId, e) {
     const arrow = l.old_status ? `${l.old_status} → ${l.new_status}` : l.new_status;
     const dt = new Date(l.changed_at).toLocaleString('ru');
     return `<div class="log-entry ${cls}"><span class="log-time">${dt}</span>  ${arrow}</div>`;
-  }).join('') : '<div style="font-size:11px;color:var(--text2)">Лог пуст</div>';
+  }).join('') : '<div style="font-size:11px;color:var(--text2)">' + t('LOG_EMPTY') + '</div>';
 
   showModal(`
     <h2>' + " + t(\'STATUS_LOG\') + " + '</h2>
     <div class="log-list">${rows}</div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Закрыть</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CLOSE')}</button>
     </div>
   `);
 }
@@ -1813,10 +1813,10 @@ function openEditSite(siteId) {
   if (!site) return;
   showModal(`
     <h2>" + t(\'EDIT_SITE\') + "</h2>
-    <div class="field"><label>Название</label><input id="es-name" value="${escHtml(site.name)}"></div>
+    <div class="field"><label>${t('NAME')}</label><input id="es-name" value="${escHtml(site.name)}"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" onclick="submitEditSite(${siteId})">Сохранить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
+      <button class="btn btn-primary" onclick="submitEditSite(${siteId})">${t('SAVE')}</button>
     </div>
   `);
 }
@@ -1895,7 +1895,7 @@ async function doExport() {
 async function doImport() {
   const fileInput = document.getElementById('import-file');
   const msg = document.getElementById('import-msg');
-  if (!fileInput.files.length) { msg.textContent = 'Выберите файл'; return; }
+  if (!fileInput.files.length) { msg.textContent = t('SELECT_FILE'); return; }
   const text = await fileInput.files[0].text();
   let data;
   try { data = JSON.parse(text); } catch { msg.style.color='var(--red)'; msg.textContent=t('BAD_JSON'); return; }
@@ -1919,18 +1919,18 @@ async function doImport() {
 
 function openAddUser() {
   showModal(`
-    <h2>НОВЫЙ ПОЛЬЗОВАТЕЛЬ</h2>
+    <h2>${t('NEW_USER')}</h2>
     <div class="field"><label data-i18n="LOGIN_USER"></label><input id="nu-login" type="text"></div>
     <div class="field"><label data-i18n="LOGIN_PASS"></label><input id="nu-pass" type="password"></div>
-    <div class="field"><label>Роль</label>
+    <div class="field"><label>${t('ROLE')}</label>
       <select id="nu-role">
         <option value="manager">manager</option>
         <option value="admin">admin</option>
       </select>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" onclick="submitAddUser()">Создать</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
+      <button class="btn btn-primary" onclick="submitAddUser()">${t('CREATE')}</button>
     </div>
   `);
 }
@@ -1973,10 +1973,10 @@ async function openUserSites(uid, username) {
   showModal(`
     <h2>' + " + t(\'MANAGER_RIGHTS\') + " + '</h2>
     <div style="font-size:11px;color:var(--text2);margin-bottom:14px">${escHtml(username)} — ${" + t(\'SITE_ACCESS\') + "}</div>
-    <div class="site-checks">${rows || '<div style="font-size:11px;color:var(--text2)">Объектов пока нет</div>'}</div>
+    <div class="site-checks">${rows || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES') + '</div>'}</div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" onclick="submitUserSites()">Сохранить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
+      <button class="btn btn-primary" onclick="submitUserSites()">${t('SAVE')}</button>
     </div>
   `);
 }
@@ -2041,17 +2041,17 @@ async function loadNotifications() {
     box.innerHTML = `
       <div style="margin-bottom:12px">
         <a class="inline-btn" style="display:inline-block" target="_blank" href="https://t.me/${escHtml(cfg.bot_username)}">✈️ ${' + " + t(\'OPEN_BOT\') + " + '} @${escHtml(cfg.bot_username)}</a>
-        <div style="font-size:10px;color:var(--text2);margin-top:6px">Нажмите в боте «Start» — он пришлёт ключ</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:6px">${t('PRESS_START')}— ${t('HE_SENDS_KEY')}</div>
       </div>
       <div class="field"><label>${t('KEY_FROM_BOT')}</label>
-        <input id="nf-key" type="text" placeholder="например: a1b2c3d4e5f6"></div>
+        <input id="nf-key" type="text" placeholder="${t('KEY_EXAMPLE')}"></div>
       <button class="btn btn-primary" onclick="bindTelegram()">${' + " + t(\'BIND\') + " + '}</button>
       <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
     `;
     return;
   }
 
-  // Привязан: статус + отвязать + время + галочки
+  // ${t('BOUND_PREFIX')}статус + отвязать + время + галочки
   const siteChecks = (cfg.sites || []).map(s => `
     <label class="site-check">
       <input type="checkbox" data-site-id="${s.id}" ${(cfg.site_ids_checked || []).includes(s.id) ? 'checked' : ''}>
@@ -2067,9 +2067,9 @@ async function loadNotifications() {
     <div class="field"><label>' + " + t(\'DAILY_CTRL\') + " + '</label>
       <input type="time" id="nf-time" value="${escHtml(cfg.control_time)}"></div>
     <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">${" + t(\'NOTIFY_SITES\') + "}</div>
-    <div class="site-checks" style="max-height:30vh">${siteChecks || '<div style="font-size:11px;color:var(--text2)">Объектов нет</div>'}</div>
+    <div class="site-checks" style="max-height:30vh">${siteChecks || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES2') + '</div>'}</div>
     <div style="margin-top:14px">
-      <button class="btn btn-primary" onclick="saveNotifyConfig()">Сохранить</button>
+      <button class="btn btn-primary" onclick="saveNotifyConfig()">${t('SAVE')}</button>
       <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
     </div>
   `;
@@ -2082,7 +2082,7 @@ async function bindTelegram() {
   try {
     const res = await apiFetch('/api/notifications/bind', { method: 'POST', body: JSON.stringify({ key }) });
     msg.style.color = 'var(--green)';
-    msg.textContent = `✅ Привязан: ${res.telegram_username}`;
+    msg.textContent = `✅ ${t('BOUND_PREFIX')}${res.telegram_username}`;
     setTimeout(loadNotifications, 800);
   } catch (e) {
     msg.style.color = 'var(--red)';
@@ -2098,7 +2098,7 @@ async function unbindTelegram() {
 
 async function testNotify() {
   const msg = document.getElementById('nf-msg');
-  if (msg) msg.textContent = 'Отправляю…';
+  if (msg) msg.textContent = t('SENDING') + '…';
   try {
     await apiFetch('/api/notifications/test', { method: 'POST' });
     if (msg) { msg.style.color = 'var(--green)'; msg.textContent = t('SENT_CHECK_TG'); }
@@ -2129,7 +2129,7 @@ async function saveBotToken() {
   try {
     await apiFetch('/api/notifications/token', { method: 'PUT', body: JSON.stringify({ token }) });
     msg.style.color = 'var(--green)';
-    msg.textContent = token ? '✓ Токен сохранён, бот запущен' : 'Токен очищен';
+    msg.textContent = token ? '✓ ' + t('TOKEN_SAVED') : t('TOKEN_CLEARED');
   } catch (e) {
     msg.style.color = 'var(--red)';
     msg.textContent = e.message;
@@ -2186,10 +2186,7 @@ function escHtml(s) {
     .replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;');
 }
-</script>
 
-<script>
-// ── i18n: полный перевод (ru/en) + переключатель в интерфейсе ──
 const I18N_DICT = {
   ru: {
     LOGIN_BTN: "ВОЙТИ", LOGIN_USER: "Логин", LOGIN_PASS: "Пароль",
@@ -2221,7 +2218,26 @@ const I18N_DICT = {
     EXPORT_ERR: "Ошибка экспорта", BAD_JSON: "Невалидный JSON", IMPORTING: "Импортирую", IMPORTED: "Объект импортирован",
     LOAD_ERR: "Ошибка загрузки", CONN_ERR: "Ошибка соединения", UNBIND_TG_Q: "Отвязать Telegram?",
     ONLINE_SUFFIX: "в сети", OFFLINE_SUFFIX: "нет",
-  },
+    PARENT_DEV: "Родительское устройство",
+    DELETE_USER: "Удалить пользователя?",
+    SENT_PREFIX: "Отправлено ",
+    BOT_TOKEN_HINT2: "и вставьте токен. Уведомления доступны всем пользователям.",
+    ROLE: "Роль",
+    ADMIN: "админ",
+    MANAGER: "менеджер",
+    MIN: "м",
+    SEC: "с",
+    NO_PING: "без пинга",
+    SELECT_FILE: "Выберите файл",
+    LANG: "Язык",
+    NO_SITES2: "Нет объектов",
+    T_GATEWAY: "Шлюз",
+    T_SWITCH_M: "Коммутатор (упр.)",
+    T_SWITCH: "Коммутатор (неупр.)",
+    T_BRIDGE: "WiFi мост",
+    T_AP: "Точка доступа",
+    T_CAMERA: "Камера",
+    T_NVR: "Регистратор",},
   en: {
     LOGIN_BTN: "SIGN IN", LOGIN_USER: "Username", LOGIN_PASS: "Password",
     SITES: "SITES", MAP: "MAP", SETTINGS: "SETTINGS", LOGOUT: "LOGOUT", LOGGED_AS: "logged in as",
@@ -2252,9 +2268,40 @@ const I18N_DICT = {
     EXPORT_ERR: "Export error", BAD_JSON: "Invalid JSON", IMPORTING: "Importing", IMPORTED: "Site imported",
     LOAD_ERR: "Load error", CONN_ERR: "Connection error", UNBIND_TG_Q: "Unbind Telegram?",
     ONLINE_SUFFIX: "online", OFFLINE_SUFFIX: "down",
-  },
+    PARENT_DEV: "Parent device",
+    DELETE_USER: "Delete user?",
+    SENT_PREFIX: "Sent ",
+    BOT_TOKEN_HINT2: "and paste the token. Notifications are available to all users.",
+    ROLE: "Role",
+    ADMIN: "admin",
+    MANAGER: "manager",
+    MIN: "min",
+    SEC: "s",
+    NO_PING: "no ping",
+    SELECT_FILE: "Choose file",
+    LANG: "Language",
+    NO_SITES2: "No sites",
+    T_GATEWAY: "Gateway",
+    T_SWITCH_M: "Managed switch",
+    T_SWITCH: "Unmanaged switch",
+    T_BRIDGE: "WiFi bridge",
+    T_AP: "Access point",
+    T_CAMERA: "Camera",
+    T_NVR: "Recorder",},
 };
+</script>
+
+<script>
+// ── i18n: полный перевод (ru/en) + переключатель в интерфейсе ──
+
 let _lang = detectLang();
+
+function tType(t) {
+  const map = { gateway: 'T_GATEWAY', switch_managed: 'T_SWITCH_M', switch: 'T_SWITCH',
+    wifi_bridge: 'T_BRIDGE', access_point: 'T_AP', device: 'T_DEVICE', camera: 'T_CAMERA', nvr: 'T_NVR' };
+  return map[t] ? t(map[t]) : t;
+}
+
 function t(key) {
   const d = I18N_DICT[_lang] || I18N_DICT.ru;
   return d[key] !== undefined ? d[key] : (I18N_DICT.ru[key] !== undefined ? I18N_DICT.ru[key] : key);
