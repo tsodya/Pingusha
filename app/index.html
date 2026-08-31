@@ -776,11 +776,11 @@ body {
     <p>NETWORK MONITORING SYSTEM <span class="ver">v1.0.1</span></p>
     <div class="field">
       <label data-i18n="LOGIN_USER"></label>
-      <input id="l-user" type="text" placeholder="admin" autocomplete="username">
+      <input id="l-user" type="text" placeholder="" autocomplete="username">
     </div>
     <div class="field">
       <label data-i18n="LOGIN_PASS"></label>
-      <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+      <input id="l-pass" type="password" placeholder="" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()" data-i18n="LOGIN_BTN"></button>
     <div class="login-error" id="login-error"></div>
@@ -2235,8 +2235,8 @@ function detectLang() {
     const saved = localStorage.getItem('pingusha_lang');
     if (saved === 'ru' || saved === 'en') return saved;
   } catch (e) {}
-  const nl = (navigator.language || 'en').toLowerCase();
-  return nl.startsWith('ru') ? 'ru' : 'en';
+  // по умолчанию интерфейс английский (русский — по выбору пользователя)
+  return 'en';
 }
 function setLang(lang) {
   _lang = lang;
