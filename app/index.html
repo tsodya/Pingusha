@@ -2031,48 +2031,47 @@ async function loadNotifications() {
       </div>`;
   }
 
+  let html = tokenBlock;
   if (!cfg.bot_username) {
-    box.innerHTML = tokenBlock + `<div style="color:var(--text2);margin-bottom:10px">${t('BOT_NOT_SETUP')}.</div>`;
-    return;
-  }
-
-  if (!cfg.bound) {
+    // Бот не настроен: предупреждение + всё остальное всё равно показываем
+    html += `<div style="color:var(--text2);margin-bottom:10px">${t('BOT_NOT_SETUP')}.</div>`;
+  } else if (!cfg.bound) {
     // Не привязан: ссылка на бота + поле ключа
-    box.innerHTML = `
+    html += `
       <div style="margin-bottom:12px">
-        <a class="inline-btn" style="display:inline-block" target="_blank" href="https://t.me/${escHtml(cfg.bot_username)}">✈️ ${' + " + t(\'OPEN_BOT\') + " + '} @${escHtml(cfg.bot_username)}</a>
-        <div style="font-size:10px;color:var(--text2);margin-top:6px">${t('PRESS_START')}— ${t('HE_SENDS_KEY')}</div>
+        <a class="inline-btn" style="display:inline-block" target="_blank" href="https://t.me/${escHtml(cfg.bot_username)}">✈️ ${t('OPEN_BOT')} @${escHtml(cfg.bot_username)}</a>
+        <div style="font-size:10px;color:var(--text2);margin-top:6px">${t('PRESS_START')} — ${t('HE_SENDS_KEY')}</div>
       </div>
       <div class="field"><label>${t('KEY_FROM_BOT')}</label>
         <input id="nf-key" type="text" placeholder="${t('KEY_EXAMPLE')}"></div>
-      <button class="btn btn-primary" onclick="bindTelegram()">${' + " + t(\'BIND\') + " + '}</button>
+      <button class="btn btn-primary" onclick="bindTelegram()">${t('BIND')}</button>
       <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
     `;
-    return;
+  } else {
+    // Привязан: статус + отвязать + тест + время + галочки объектов
+    const siteChecks = (cfg.sites || []).map(s => `
+      <label class="site-check">
+        <input type="checkbox" data-site-id="${s.id}" ${(cfg.site_ids_checked || []).includes(s.id) ? 'checked' : ''}>
+        <span>${escHtml(s.name)}</span>
+      </label>`).join('');
+
+    html += `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <span class="tag must" style="font-size:11px">✅ ${t('BOUND_PREFIX')}: ${escHtml(cfg.telegram_username || 'Telegram')}</span>
+        <button class="dev-act-btn" onclick="unbindTelegram()">${t('UNBIND')}</button>
+        <button class="dev-act-btn" onclick="testNotify()">🧪 ${t('TEST')}</button>
+      </div>
+      <div class="field"><label>${t('DAILY_CTRL')}</label>
+        <input type="time" id="nf-time" value="${escHtml(cfg.control_time)}"></div>
+      <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">${t('NOTIFY_SITES')}</div>
+      <div class="site-checks" style="max-height:30vh">${siteChecks || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES2') + '</div>'}</div>
+      <div style="margin-top:14px">
+        <button class="btn btn-primary" onclick="saveNotifyConfig()">${t('SAVE')}</button>
+        <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
+      </div>
+    `;
   }
-
-  // ${t('BOUND_PREFIX')}статус + отвязать + время + галочки
-  const siteChecks = (cfg.sites || []).map(s => `
-    <label class="site-check">
-      <input type="checkbox" data-site-id="${s.id}" ${(cfg.site_ids_checked || []).includes(s.id) ? 'checked' : ''}>
-      <span>${escHtml(s.name)}</span>
-    </label>`).join('');
-
-  box.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <span class="tag must" style="font-size:11px">✅ ${' + " + t(\'BOUND_PREFIX\') + " + '}: ${escHtml(cfg.telegram_username || 'Telegram')}</span>
-      <button class="dev-act-btn" onclick="unbindTelegram()">${' + " + t(\'UNBIND\') + " + '}</button>
-      <button class="dev-act-btn" onclick="testNotify()">🧪 ${" + t(\'TEST\') + "}</button>
-    </div>
-    <div class="field"><label>' + " + t(\'DAILY_CTRL\') + " + '</label>
-      <input type="time" id="nf-time" value="${escHtml(cfg.control_time)}"></div>
-    <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">${" + t(\'NOTIFY_SITES\') + "}</div>
-    <div class="site-checks" style="max-height:30vh">${siteChecks || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES2') + '</div>'}</div>
-    <div style="margin-top:14px">
-      <button class="btn btn-primary" onclick="saveNotifyConfig()">${t('SAVE')}</button>
-      <div id="nf-msg" style="font-size:10px;margin-top:8px"></div>
-    </div>
-  `;
+  box.innerHTML = html;
 }
 
 async function bindTelegram() {
