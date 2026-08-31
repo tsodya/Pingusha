@@ -26,7 +26,9 @@ else
 fi
 
 echo "→ Пересборка контейнера..."
-docker compose up -d --build
+docker compose pull --progress=plain 2>&1 | tail -5
+docker compose build --progress=plain 2>&1 | tail -5
+docker compose up -d
 
 echo ""
 echo "=============================================="
