@@ -5,6 +5,15 @@
 #
 set -e
 
+# ── Self-update: всегда выполняем свежую версию скрипта ──
+TMP_UPDATE=$(mktemp)
+if curl -fsSL "https://github.com/tsodya/Pingusha/raw/main/update.sh" -o "$TMP_UPDATE" 2>/dev/null; then
+  if ! cmp -s "$TMP_UPDATE" "$0"; then
+    exec bash "$TMP_UPDATE"
+  fi
+fi
+rm -f "$TMP_UPDATE"
+
 BOLD='\033[1m'; NC='\033[0m'
 
 INSTALL_DIR="${PINGUSHA_DIR:-$HOME/pingusha}"

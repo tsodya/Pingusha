@@ -835,7 +835,7 @@ body {
   <div id="admin-view">
     <h2 data-i18n="SETTINGS">НАСТРОЙКИ</h2>
     <div class="admin-section">
-      <h3 data-i18n="NOTIFICATIONS">${t('NOTIFICATIONS')}</h3>
+      <h3 data-i18n="NOTIFICATIONS" data-i18n="NOTIFICATIONS">/h3>
       <div id="notif-body" style="font-size:12px;color:var(--text2)">Загрузка…</div>
     </div>
     <div class="admin-section" id="sec-users" style="display:none">
@@ -843,18 +843,10 @@ body {
       <div id="users-list"></div>
       <button class="inline-btn" style="margin-top:10px" onclick="openAddUser()">+ Добавить пользователя</button>
     </div>
-    <div class="admin-section" id="sec-bot-token" style="display:none">
-      <h3 data-i18n="BOT_TOKEN"></h3>
-      <div class="field"><label data-i18n="BOT_TOKEN_LBL"></label>
-        <input type="password" id="bt-token" placeholder="123456:ABC-DEF..." autocomplete="off"></div>
-      <div style="font-size:10px;color:var(--text2);margin-bottom:10px" data-i18n="BOT_TOKEN_HINT"></div>
-      <button class="btn btn-primary" onclick="saveBotToken()" data-i18n="SAVE"></button>
-      <div id="bt-msg" style="font-size:10px;margin-top:8px"></div>
-    </div>
     <div class="admin-section">
-      <h3 data-i18n="CHANGE_PASS">${t('CHANGE_PASS')}</h3>
-      <div class="field"><label>${t('CUR_PASS')}</label><input type="password" id="cp-old"></div>
-      <div class="field"><label>${t('NEW_PASS')}</label><input type="password" id="cp-new"></div>
+      <h3 data-i18n="CHANGE_PASS" data-i18n="CHANGE_PASS">/h3>
+      <div class="field"><label data-i18n="CUR_PASS">/label><input type="password" id="cp-old"></div>
+      <div class="field"><label data-i18n="NEW_PASS">/label><input type="password" id="cp-new"></div>
       <button class="btn btn-primary" onclick="changePassword()">REFRESH</button>
       <div id="cp-msg" style="font-size:10px;margin-top:8px"></div>
     </div>
@@ -1851,7 +1843,6 @@ async function loadAdminTab() {
   // Админ-разделы только для админа
   const isAdmin = currentUser?.role === 'admin';
   document.getElementById('sec-users').style.display = isAdmin ? '' : 'none';
-  document.getElementById('sec-bot-token').style.display = isAdmin ? '' : 'none';
   await loadNotifications();
   if (!isAdmin) return;
   try {
@@ -2028,8 +2019,20 @@ async function loadNotifications() {
   let cfg = null;
   try { cfg = await apiFetch('/api/notifications'); } catch { box.innerHTML = t('LOAD_ERR'); return; }
 
+  let tokenBlock = '';
+  if (currentUser?.role === 'admin') {
+    tokenBlock = `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px">
+        <div class="field" style="margin-bottom:8px"><label>${t('BOT_TOKEN_LBL')}</label>
+          <input type="password" id="bt-token" placeholder="123456:ABC-DEF..." autocomplete="off"></div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:8px">${t('BOT_TOKEN_HINT')}</div>
+        <button class="btn btn-primary" onclick="saveBotToken()">${t('SAVE')}</button>
+        <div id="bt-msg" style="font-size:10px;margin-top:8px"></div>
+      </div>`;
+  }
+
   if (!cfg.bot_username) {
-    box.innerHTML = `<div style="color:var(--text2);margin-bottom:10px">${" + t(\'BOT_NOT_SETUP\') + "}.</div>`;
+    box.innerHTML = tokenBlock + `<div style="color:var(--text2);margin-bottom:10px">${t('BOT_NOT_SETUP')}.</div>`;
     return;
   }
 
