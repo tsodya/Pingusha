@@ -80,7 +80,7 @@ docker compose up -d --build
 echo ""
 echo "=============================================="
 echo -e "  ✅ ${BOLD}Pingusha запущена${NC}"
-echo "  Адрес:  http://localhost:8000"
+echo "  Адрес:  http://localhost:45585"
 echo "  Язык:   ${APP_LANG}"
 echo "  Данные: ./data (volume pingusha-data)"
 echo ""

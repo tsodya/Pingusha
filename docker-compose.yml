@@ -3,7 +3,7 @@ services:
     build: ./app
     container_name: pingusha
     ports:
-      - "8000:8000"
+      - "45585:8000"
     volumes:
       - pingusha-data:/app/data
     environment:
