@@ -97,7 +97,8 @@ docker compose up -d
 echo ""
 echo "=============================================="
 echo -e "  ✅ ${BOLD}Pingusha is running${NC}"
-echo "  URL:     http://localhost:45585"
+HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+echo "  URL:     http://${HOST_IP:-localhost}:45585"
 echo "  Data:    volume pingusha-data"
 echo ""
 if [ "$SHOW_PASSWORD" = "1" ]; then
