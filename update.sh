@@ -14,6 +14,7 @@ cd "$INSTALL_DIR" 2>/dev/null || { echo "❌ Каталог $INSTALL_DIR не н
 echo "→ Каталог: $INSTALL_DIR"
 echo "→ Обновление кода (git pull)..."
 git pull --ff-only
+echo -e "→ Версия: ${BOLD}$(git describe --tags 2>/dev/null || git log --oneline -1)${NC}"
 
 # Автоматический бэкап БД перед пересборкой
 BACKUP_DIR="$INSTALL_DIR/backups"
