@@ -15,16 +15,30 @@ echo "=============================================="
 echo ""
 
 # ── 1. Выбор языка / language ────────────────────────
-echo "Выберите язык / Select language:"
-echo "  1) Русский (ru)"
-echo "  2) English (en)"
-read -rp "Your choice [1]: " lang_choice
-case "${lang_choice:-1}" in
-  2|en|EN|english) APP_LANG="en" ;;
-  *) APP_LANG="ru" ;;
-esac
-echo -e "→ ${BOLD}${APP_LANG}${NC}"
-echo ""
+# Важно: при запуске через pipe (curl | bash) stdin занят самим скриптом,
+# и read «съел» бы остаток скрипта. Переключаем ввод на терминал.
+if [ ! -t 0 ]; then
+  if [ -r /dev/tty ]; then
+    exec </dev/tty
+  else
+    # неинтерактивный запуск (CI и т.п.) — язык из APP_LANG или по умолчанию
+    APP_LANG="${APP_LANG:-ru}"
+  fi
+fi
+
+APP_LANG="${APP_LANG:-}"
+if [ -z "$APP_LANG" ]; then
+  echo "Выберите язык / Select language:"
+  echo "  1) Русский (ru)"
+  echo "  2) English (en)"
+  read -rp "Your choice [1]: " lang_choice
+  case "${lang_choice:-1}" in
+    2|en|EN|english) APP_LANG="en" ;;
+    *) APP_LANG="ru" ;;
+  esac
+  echo -e "→ ${BOLD}${APP_LANG}${NC}"
+  echo ""
+fi
 
 # ── 2. Каталог установки ─────────────────────────────
 INSTALL_DIR="${PINGUSHA_DIR:-$HOME/pingusha}"
