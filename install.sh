@@ -32,9 +32,32 @@ mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 echo -e "→ Установка в: ${BOLD}${INSTALL_DIR}${NC}"
 
-# ── 3. Проверка зависимостей ─────────────────────────
-command -v docker >/dev/null 2>&1 || { echo "❌ Docker не установлен / Docker not found"; exit 1; }
-command -v docker compose >/dev/null 2>&1 || { echo "❌ docker compose не найден"; exit 1; }
+# ── 3. Зависимости (ставим сами: curl, git, docker, compose) ──
+if [ "$(id -u)" != "0" ]; then
+  echo "❌ Установка требует прав root. Запустите так:"
+  echo "   curl -fsSL <URL> | sudo bash"
+  exit 1
+fi
+
+NEED_APT=0
+command -v curl >/dev/null 2>&1 || NEED_APT=1
+command -v git >/dev/null 2>&1 || NEED_APT=1
+command -v docker >/dev/null 2>&1 || NEED_APT=1
+docker compose version >/dev/null 2>&1 || NEED_APT=1
+
+if [ "$NEED_APT" = "1" ]; then
+  echo "→ Установка зависимостей (curl, git, docker, docker compose)..."
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  # docker compose plugin: docker-compose-v2 (22.04+) или docker-compose-plugin (24.04+)
+  if ! apt-get install -y -qq curl git docker.io docker-compose-v2 2>/dev/null; then
+    apt-get install -y -qq curl git docker.io docker-compose-plugin
+  fi
+  systemctl enable --now docker >/dev/null 2>&1 || true
+  echo "→ Docker установлен: $(docker --version)"
+else
+  echo "→ Зависимости уже есть (curl, git, docker)"
+fi
 
 # ── 4. Скачивание кода (если каталог пуст) ───────────
 if [ ! -f docker-compose.yml ]; then
