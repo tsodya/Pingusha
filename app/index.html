@@ -772,8 +772,8 @@ body {
 <!-- Login -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>PINGUSHA <span class="ver">v1.0.0</span></h1>
-    <p>NETWORK MONITORING SYSTEM <span class="ver">v1.0.0</span></p>
+    <h1>PINGUSHA <span class="ver">v1.0.1</span></h1>
+    <p>NETWORK MONITORING SYSTEM <span class="ver">v1.0.1</span></p>
     <div class="field">
       <label data-i18n="LOGIN_USER"></label>
       <input id="l-user" type="text" placeholder="admin" autocomplete="username">
@@ -789,7 +789,7 @@ body {
 
 <!-- Topbar -->
 <div id="topbar">
-  <h1>PINGUSHA <span class="ver">v1.0.0</span></h1>
+  <h1>PINGUSHA <span class="ver">v1.0.1</span></h1>
   <button class="pill active" id="tab-tiles" onclick="switchTab('tiles')" data-i18n="SITES"></button>
   <button class="pill" id="tab-map" onclick="switchTab('map')" data-i18n="MAP"></button>
   <button class="pill" id="tab-admin" onclick="switchTab('admin')" style="display:none" data-i18n="SETTINGS"></button>
@@ -810,6 +810,9 @@ body {
 
   <!-- Tiles view -->
   <div id="tiles-view">
+    <div style="padding:12px 16px 0">
+      <button class="inline-btn" id="btn-add-site-tiles" onclick="addSiteFromTiles()" style="display:none">+ OBJECT</button>
+    </div>
     <div class="tiles-grid" id="tiles-grid"></div>
   </div>
 
@@ -850,7 +853,7 @@ body {
       <div id="cp-msg" style="font-size:10px;margin-top:8px"></div>
     </div>
     <div style="margin-top:24px;font-size:10px;color:var(--text2);text-align:center;letter-spacing:.05em">
-      PINGUSHA <span class="ver">v1.0.0</span>
+      PINGUSHA <span class="ver">v1.0.1</span>
     </div>
   </div>
 </div>
@@ -879,6 +882,7 @@ let map = null;
 let markers = {};       // site_id → maplibre marker
 let sites = [];
 let addSiteMode = false;
+let movingSiteId = null;
 let selectedSiteId = null;
 let editingOrder = false;
 let refreshTimer = null;
@@ -934,6 +938,7 @@ function onLoginSuccess() {
   document.getElementById('tab-admin').style.display = '';   // Настройки — всем (уведомления)
   if (currentUser.role === 'admin') {
     document.getElementById('btn-add-site').style.display = '';
+    document.getElementById('btn-add-site-tiles').style.display = '';
   }
   document.getElementById('map-controls').style.display = '';
   initMap();
@@ -946,6 +951,7 @@ function showLoginScreen() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('tab-admin').style.display = 'none';
   document.getElementById('btn-add-site').style.display = 'none';
+  document.getElementById('btn-add-site-tiles').style.display = 'none';
   document.getElementById('map-controls').style.display = 'none';
   document.getElementById('login-error').textContent = t('SESSION_EXPIRED');
 }
@@ -1028,7 +1034,25 @@ function initMap() {
   map.on('moveend', updateMapVisibility);
 }
 
+function addSiteFromTiles() {
+  switchTab('map');
+  toggleAddSite();
+}
+
 function onMapClick(e) {
+  if (movingSiteId) {
+    // перемещение объекта: клик по новому месту
+    const lng = e.lngLat.lng, lat = e.lngLat.lat;
+    apiFetch(`/api/sites/${movingSiteId}`, { method: 'PUT', body: JSON.stringify({ lat, lng }) })
+      .then(() => {
+        movingSiteId = null;
+        map.getContainer().style.cursor = '';
+        closePanel();
+        loadSites();
+      })
+      .catch(() => { movingSiteId = null; map.getContainer().style.cursor = ''; });
+    return;
+  }
   if (!addSiteMode) return;
   openAddSiteModal(e.lngLat.lat, e.lngLat.lng);
 }
@@ -1256,7 +1280,27 @@ function renderMarkers() {
 // ─────────────────────────────────────────────
 // Add site mode
 // ─────────────────────────────────────────────
+function moveSiteMode(siteId) {
+  movingSiteId = siteId;
+  switchTab('map');
+  const s = sites.find(x => x.id === siteId);
+  if (s) map.flyTo({ center: [s.lng, s.lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
+  map.getContainer().style.cursor = 'crosshair';
+  const btn = document.getElementById('btn-add-site');
+  btn.style.display = '';
+  btn.classList.add('active');
+  btn.textContent = '📍 ' + t('MOVE') + ' — ' + t('CLICK_MAP');
+}
+
 function toggleAddSite() {
+  if (movingSiteId) { // отмена перемещения
+    movingSiteId = null;
+    map.getContainer().style.cursor = '';
+    const btn = document.getElementById('btn-add-site');
+    btn.classList.remove('active');
+    btn.textContent = '+ ' + t('OBJECT');
+    return;
+  }
   addSiteMode = !addSiteMode;
   const btn = document.getElementById('btn-add-site');
   btn.classList.toggle('active', addSiteMode);
@@ -1425,6 +1469,7 @@ async function renderPanel(site) {
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
       <button class="inline-btn" style="width:auto" onclick="openAddDevice(${site.id})">+ Устройство</button>
       <button class="inline-btn" style="width:auto" onclick="toggleOrderMode()">${editingOrder ? '✓ ' + t('DONE') : '↕ ' + t('ORDER')}</button>
+      <button class="inline-btn" style="width:auto" onclick="moveSiteMode(${site.id})">📍 ${t('MOVE')}</button>
       <button class="inline-btn" style="width:auto" onclick="openEditSite(${site.id})">✎ Объект</button>
       <button class="inline-btn" style="width:auto;border-color:var(--red);color:var(--red)" onclick="deleteSite(${site.id})">✕ Удалить объект</button>
     </div>` : '';
@@ -2126,7 +2171,7 @@ const I18N_DICT = {
     TYPE: "Тип", STATUS: "Статус", PING_INTERVAL: "Интервал пинга", MUST_ONLINE: "Должно быть в сети", CHECKED: "Проверено",
     YES: "да", NO: "нет",
     ADD_CHILD: "+ Дочернее", LOG: "Лог", EDIT: "Редактировать", DELETE: "Удалить", CLOSE: "Закрыть",
-    INFO: "Информация", UP: "Вверх", DOWN: "Вниз", DONE: "Готово", ORDER: "Порядок", REFRESH: "Обновить",
+    INFO: "Информация", UP: "Вверх", DOWN: "Вниз", DONE: "Готово", ORDER: "Порядок", MOVE: "Переместить", CLICK_MAP: "клик по карте", REFRESH: "Обновить",
     NEW_SITE: "НОВЫЙ ОБЪЕКТ", EDIT_SITE: "РЕДАКТИРОВАТЬ ОБЪЕКТ",
     NEW_DEVICE: "НОВОЕ УСТРОЙСТВО", EDIT_DEVICE: "РЕДАКТИРОВАТЬ УСТРОЙСТВО", CHILD_DEVICE: "ДОЧЕРНЕЕ УСТРОЙСТВО",
     NAME: "Название", ADDRESS: "адрес", COORDS: "Координаты", LAT: "Широта", LNG: "Долгота",
@@ -2157,7 +2202,7 @@ const I18N_DICT = {
     TYPE: "Type", STATUS: "Status", PING_INTERVAL: "Ping interval", MUST_ONLINE: "Must be online", CHECKED: "Checked",
     YES: "yes", NO: "no",
     ADD_CHILD: "+ Child", LOG: "Log", EDIT: "Edit", DELETE: "Delete", CLOSE: "Close",
-    INFO: "Info", UP: "Up", DOWN: "Down", DONE: "Done", ORDER: "Order", REFRESH: "Refresh",
+    INFO: "Info", UP: "Up", DOWN: "Down", DONE: "Done", ORDER: "Order", MOVE: "Move", CLICK_MAP: "click on the map", REFRESH: "Refresh",
     NEW_SITE: "NEW SITE", EDIT_SITE: "EDIT SITE",
     NEW_DEVICE: "NEW DEVICE", EDIT_DEVICE: "EDIT DEVICE", CHILD_DEVICE: "CHILD DEVICE",
     NAME: "Name", ADDRESS: "address", COORDS: "Coordinates", LAT: "Latitude", LNG: "Longitude",

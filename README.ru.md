@@ -1,6 +1,6 @@
 # Pingusha
 
-**Версия: 1.0.0**
+**Версия: 1.0.1**
 
 🌐 [English](README.md) | [Русский](README.ru.md)
 
