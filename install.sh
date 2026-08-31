@@ -60,12 +60,18 @@ if [ -z "$ADMIN_PASSWORD" ]; then
 fi
 
 # ── 7. .env ──────────────────────────────────────────
-cat > .env <<EOF
+if [ -f .env ]; then
+  echo "→ .env уже есть — сохраняем (пароль и токен не меняем)"
+  SHOW_PASSWORD=0
+else
+  cat > .env <<EOF
 TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 LANG=${APP_LANG}
 EOF
-echo "→ .env записан (язык: ${APP_LANG})"
+  echo "→ .env создан (язык: ${APP_LANG})"
+  SHOW_PASSWORD=1
+fi
 
 # ── 8. Запуск ────────────────────────────────────────
 echo "→ Запуск контейнера..."
@@ -78,9 +84,14 @@ echo "  Адрес:  http://localhost:8000"
 echo "  Язык:   ${APP_LANG}"
 echo "  Данные: ./data (volume pingusha-data)"
 echo ""
-echo -e "  🔑 ${BOLD}Пользователь:${NC} admin"
-echo -e "  🔑 ${BOLD}Пароль:      ${NC}${ADMIN_PASSWORD}"
-echo ""
-echo -e "  ⚠️  ${BOLD}СМЕНИТЕ ПАРОЛЬ в настройках после входа!${NC}"
-echo "  Других пользователей нет — создайте в Настройки → Пользователи"
+if [ "$SHOW_PASSWORD" = "1" ]; then
+  echo -e "  🔑 ${BOLD}Пользователь:${NC} admin"
+  echo -e "  🔑 ${BOLD}Пароль:      ${NC}${ADMIN_PASSWORD}"
+  echo ""
+  echo -e "  ⚠️  ${BOLD}СМЕНИТЕ ПАРОЛЬ в настройках после входа!${NC}"
+  echo "  Других пользователей нет — создайте в Настройки → Пользователи"
+else
+  echo -e "  🔑 Вход: admin / пароль из ${BOLD}.env${NC} (ADMIN_PASSWORD)"
+  echo -e "  ℹ️  Обновление: curl -fsSL .../update.sh | bash"
+fi
 echo "=============================================="
