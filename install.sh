@@ -88,9 +88,9 @@ fi
 # ── 7. Launch ────────────────────────────────────────
 # Прозрачный прогресс: pull → build → start
 echo "→ Pulling Docker images (first run downloads ~50 MB base image, may take a few minutes)..."
-docker compose pull --progress=plain 2>&1 | tail -8
+docker compose pull 2>&1 | tail -8
 echo "→ Building image..."
-docker compose build --progress=plain 2>&1 | tail -8
+docker compose build 2>&1 | tail -8
 echo "→ Starting container..."
 docker compose up -d
 
