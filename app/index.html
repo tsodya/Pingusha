@@ -1414,7 +1414,7 @@ async function renderPanel(site) {
       const p = byId[pid];
       if (!p) break;
       if (p.type === 'switch') { pid = p.parent_id; continue; }
-      if (!p.must_be_online) return true;
+      // «Необязательный» родитель НЕ подавляет статусы детей (дети пингуются сами)
       if (p.status === 'offline') return true;
       pid = p.parent_id;
     }
