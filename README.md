@@ -49,11 +49,11 @@ Open **http://localhost:45585**. On first start only **admin** is created — th
 
 ## Update
 
-One command (keeps your data, password and bot token):
+Same script — install and update are one command:
 
-    curl -fsSL https://github.com/tsodya/Pingusha/raw/main/update.sh | bash
+    curl -fsSL https://github.com/tsodya/Pingusha/raw/main/install.sh | bash
 
-Pulls the latest code and rebuilds the container. The `.env` (admin password, bot token) and the database (volume `pingusha-data`) are never touched.
+It detects an existing install and updates it (pulls the latest code, backs up the DB, rebuilds the container). `update.sh` is an alias for the same thing. The `.env` (admin password, bot token) and the database are never touched. The `.env` (admin password, bot token) and the database (volume `pingusha-data`) are never touched.
 
 ## Telegram bot setup
 

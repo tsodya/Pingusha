@@ -50,11 +50,11 @@ docker compose up -d --build
 
 ## Обновление
 
-Одна команда (данные, пароль и токен бота сохраняются):
+Один и тот же скрипт — установка и обновление:
 
-    curl -fsSL https://github.com/tsodya/Pingusha/raw/main/update.sh | bash
+    curl -fsSL https://github.com/tsodya/Pingusha/raw/main/install.sh | bash
 
-Скрипт делает автоматический бэкап БД (backups/), подтягивает код и пересобирает контейнер.
+При повторном запуске определит установленную копию и обновит (подтянет код, сделает бэкап БД, пересоберёт контейнер). `update.sh` — то же самое. `.env` (пароль, токен) и база данных (volume `pingusha-data`) не затрагиваются.
 `.env` (пароль, токен) и база данных (volume `pingusha-data`) не затрагиваются.
 
 ## Настройка Telegram-бота

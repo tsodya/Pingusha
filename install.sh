@@ -51,8 +51,20 @@ else
   echo "→ Dependencies already present (curl, git, docker)"
 fi
 
-# ── 4. Download code (if directory is empty) ──────────
-if [ ! -f docker-compose.yml ]; then
+# ── 4. Code (install or update) ───────────────────────
+if [ -d "$INSTALL_DIR/.git" ]; then
+  # Уже установлено → режим обновления
+  echo "→ Existing installation found — updating..."
+  git pull --ff-only
+  echo -e "→ Version: ${BOLD}$(git describe --tags 2>/dev/null || git log --oneline -1)${NC}"
+  # Автобэкап БД перед пересборкой
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^pingusha$'; then
+    mkdir -p "$INSTALL_DIR/backups"
+    STAMP=$(date +%Y%m%d-%H%M%S)
+    docker run --rm -v pingusha-data:/data -v "$INSTALL_DIR/backups":/backup alpine tar czf "/backup/pingusha-db-$STAMP.tar.gz" -C /data . 2>/dev/null \
+      && echo "→ DB backup: backups/pingusha-db-$STAMP.tar.gz" || echo "⚠️  DB backup skipped"
+  fi
+elif [ ! -f docker-compose.yml ]; then
   REPO_URL="${PINGUSHA_REPO:-https://github.com/tsodya/Pingusha}"
   echo "→ Downloading code from $REPO_URL ..."
   if command -v git >/dev/null 2>&1; then
@@ -60,8 +72,6 @@ if [ ! -f docker-compose.yml ]; then
   else
     curl -fsSL "${REPO_URL}/archive/refs/heads/main.tar.gz" | tar xz --strip-components=1 || { echo "❌ download failed"; exit 1; }
   fi
-else
-  echo "→ Code already present, skipping download"
 fi
 
 # ── 5. Admin password ─────────────────────────────────
