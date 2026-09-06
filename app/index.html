@@ -804,7 +804,7 @@ body {
   <div id="map-wrap" style="display:none">
     <div id="map"></div>
     <div id="map-controls" style="display:none">
-      <button class="map-btn active" id="btn-add-site" onclick="toggleAddSite()" style="display:none">+ OBJECT</button>
+      <button class="map-btn active" id="btn-add-site" onclick="toggleAddSite()" style="display:none" data-i18n="ADD_SITE_BTN"></button>
       <select id="map-source" onchange="setMapSource(this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px">
         <option value="carto">CARTO</option>
         <option value="osm">OSM</option>
@@ -817,7 +817,7 @@ body {
   <!-- Tiles view -->
   <div id="tiles-view">
     <div style="padding:12px 16px 0">
-      <button class="inline-btn" id="btn-add-site-tiles" onclick="addSiteFromTiles()" style="display:none">+ OBJECT</button>
+      <button class="inline-btn" id="btn-add-site-tiles" onclick="addSiteFromTiles()" style="display:none" data-i18n="ADD_SITE_BTN"></button>
     </div>
     <div class="tiles-grid" id="tiles-grid"></div>
   </div>
@@ -2251,6 +2251,7 @@ const I18N_DICT = {
     TOKEN_CLEARED: "Токен очищен",
     TOKEN_SAVED: "Токен сохранён, бот запущен",DEVICES: "Устройства",
     NONE: "нет",
+    ADD_SITE_BTN: "+ ОБЪЕКТ",
     },
   en: {
     LOGIN_BTN: "SIGN IN", LOGIN_USER: "Username", LOGIN_PASS: "Password",
@@ -2314,6 +2315,7 @@ const I18N_DICT = {
     TOKEN_CLEARED: "Token cleared",
     TOKEN_SAVED: "Token saved, bot started",DEVICES: "Devices",
     NONE: "No",
+    ADD_SITE_BTN: "+ SITE",
     },
 };
 </script>
