@@ -999,6 +999,7 @@ def get_notifications(user=Depends(get_session_user), db=Depends(get_db)):
         "site_ids_checked": checked,
         "sites": all_sites,
         "bot_username": bot_username,
+        "token_set": bool(get_bot_token()),
     }
 
 
@@ -1088,8 +1089,9 @@ def test_notification(user=Depends(get_session_user), db=Depends(get_db)):
 
 @app.get("/api/notifications/token")
 def get_notification_token(user=Depends(require_admin), db=Depends(get_db)):
+    env_token = os.environ.get("TELEGRAM_TOKEN", "").strip()
     row = db.execute("SELECT telegram_token FROM notifications_config WHERE id=1").fetchone()
-    return {"token_set": bool(row and row["telegram_token"])}
+    return {"token_set": bool(env_token or (row and row["telegram_token"]))}
 
 
 @app.put("/api/notifications/token")

@@ -2019,7 +2019,23 @@ async function loadNotifications() {
 
   let tokenBlock = '';
   if (currentUser?.role === 'admin') {
-    tokenBlock = `
+    if (cfg.token_set) {
+      // Токен уже настроен (env/BotFather) — не просим вводить, даём только «заменить»
+      tokenBlock = `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="tag must" style="font-size:11px">✅ ${t('TOKEN_SET')}</span>
+          <button class="dev-act-btn" onclick="toggleBotTokenField()">${t('CHANGE')}</button>
+        </div>
+        <div id="bt-field" style="display:none;margin-top:8px">
+          <div class="field" style="margin-bottom:8px"><label>${t('BOT_TOKEN_LBL')}</label>
+            <input type="password" id="bt-token" placeholder="123456:ABC-DEF..." autocomplete="off"></div>
+          <button class="btn btn-primary" onclick="saveBotToken()">${t('SAVE')}</button>
+          <div id="bt-msg" style="font-size:10px;margin-top:8px"></div>
+        </div>
+      </div>`;
+    } else {
+      tokenBlock = `
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px">
         <div class="field" style="margin-bottom:8px"><label>${t('BOT_TOKEN_LBL')}</label>
           <input type="password" id="bt-token" placeholder="123456:ABC-DEF..." autocomplete="off"></div>
@@ -2027,6 +2043,7 @@ async function loadNotifications() {
         <button class="btn btn-primary" onclick="saveBotToken()">${t('SAVE')}</button>
         <div id="bt-msg" style="font-size:10px;margin-top:8px"></div>
       </div>`;
+    }
   }
 
   let html = tokenBlock;
@@ -2122,13 +2139,18 @@ async function saveNotifyConfig() {
   }
 }
 
+function toggleBotTokenField() {
+  const f = document.getElementById('bt-field');
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
 async function saveBotToken() {
   const token = document.getElementById('bt-token').value.trim();
   const msg = document.getElementById('bt-msg');
   try {
     await apiFetch('/api/notifications/token', { method: 'PUT', body: JSON.stringify({ token }) });
-    msg.style.color = 'var(--green)';
-    msg.textContent = token ? '✓ ' + t('TOKEN_SAVED') : t('TOKEN_CLEARED');
+    // токен сохранён — перерисовываем блок (покажем «✅ Token set» вместо поля)
+    loadNotifications();
   } catch (e) {
     msg.style.color = 'var(--red)';
     msg.textContent = e.message;
@@ -2247,7 +2269,8 @@ const I18N_DICT = {
     ROOT_LEVEL: "корневой уровень",
     SENDING: "Отправляю",
     TOKEN_CLEARED: "Токен очищен",
-    TOKEN_SAVED: "Токен сохранён, бот запущен",DEVICES: "Устройства",
+    TOKEN_SAVED: "Токен сохранён, бот запущен",
+    TOKEN_SET: "Токен настроен", CHANGE: "Заменить",DEVICES: "Устройства",
     NONE: "нет",
     ADD_SITE_BTN: "+ ОБЪЕКТ",
     },
@@ -2311,7 +2334,8 @@ const I18N_DICT = {
     ROOT_LEVEL: "root level",
     SENDING: "Sending",
     TOKEN_CLEARED: "Token cleared",
-    TOKEN_SAVED: "Token saved, bot started",DEVICES: "Devices",
+    TOKEN_SAVED: "Token saved, bot started",
+    TOKEN_SET: "Token is set", CHANGE: "Change",DEVICES: "Devices",
     NONE: "No",
     ADD_SITE_BTN: "+ SITE",
     },
