@@ -1778,7 +1778,7 @@ async function openDeviceDetails(devId, e) {
     <div class="modal-footer">
       ${currentUser?.role === 'admin' ? `<button class="btn btn-ghost" onclick="openAddChildDevice(${dev.id},${selectedSiteId},event)">${t('ADD_CHILD')}</button>
       <button class="btn btn-ghost" onclick="openEditDevice(${dev.id},event)>${t('EDIT')}</button>` : ''}
-      <button class="btn btn-ghost" onclick="openDeviceLog(${dev.id},event)">t('LOG')</button>
+      <button class="btn btn-ghost" onclick="openDeviceLog(${dev.id},event)">${t('LOG')}</button>
       <button class="btn btn-primary" onclick="closeModal()">${t('CLOSE')}</button>
     </div>
   `);
@@ -1969,7 +1969,7 @@ async function openUserSites(uid, username) {
     </label>
   `).join('');
   showModal(`
-    <h2>t('MANAGER_RIGHTS')</h2>
+    <h2>${t('MANAGER_RIGHTS')}</h2>
     <div style="font-size:11px;color:var(--text2);margin-bottom:14px">${escHtml(username)} — ${t('SITE_ACCESS')}</div>
     <div class="site-checks">${rows || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES') + '</div>'}</div>
     <div class="modal-footer">
