@@ -2319,10 +2319,10 @@ const I18N_DICT = {
 
 let _lang = detectLang();
 
-function tType(t) {
+function tType(type) {
   const map = { gateway: 'T_GATEWAY', switch_managed: 'T_SWITCH_M', switch: 'T_SWITCH',
     wifi_bridge: 'T_BRIDGE', access_point: 'T_AP', device: 'T_DEVICE', camera: 'T_CAMERA', nvr: 'T_NVR' };
-  return map[t] ? t(map[t]) : t;
+  return map[type] ? t(map[type]) : type;
 }
 
 function t(key) {
