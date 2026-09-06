@@ -1538,7 +1538,7 @@ const DEVICE_ICONS = Object.fromEntries(DEVICE_TYPES.map(t => [t.v, t.icon]));
 const DEVICE_TYPE_PRIO = { gateway: 0, switch_managed: 1, switch: 2, wifi_bridge: 3, access_point: 4, device: 5, camera: 6, nvr: 7 };
 const PING_INTERVALS = [20, 30, 60, 120, 300, 600];
 const DEFAULT_INTERVAL_BY_TYPE = { gateway: 120, switch_managed: 300, wifi_bridge: 300, access_point: 300, device: 300, camera: 300, nvr: 300 };
-function intervalLabel(s) { return s < 60 ? s + 'с' : (s % 60 === 0 ? s / 60 + 'м' : (s / 60).toFixed(1) + 'м'); }
+function intervalLabel(s) { return s < 60 ? s + t('SEC') : (s % 60 === 0 ? s / 60 + t('MIN') : (s / 60).toFixed(1) + t('MIN')); }
 function isPingableType(t) { const tt = DEVICE_TYPES.find(x => x.v === t); return tt ? tt.pingable : true; }
 
 function deviceFormHtml(d = {}, allDevices = []) {
@@ -1549,7 +1549,7 @@ function deviceFormHtml(d = {}, allDevices = []) {
       <label class="type-radio ${checked ? 'selected' : ''}">
         <input type="radio" name="df-type" value="${t.v}" ${checked} onchange="onDeviceTypeChange(true)">
         <span class="type-icon">${t.icon}</span>
-        <span class="type-label">${t.l}</span>
+        <span class="type-label">${tType(t.v)}</span>
       </label>`;
   }).join('');
 
@@ -1596,7 +1596,7 @@ function deviceFormHtml(d = {}, allDevices = []) {
     </div>
     <div id="df-must-wrap" class="checkbox-row">
       <input type="checkbox" id="df-must" ${d.must_be_online!==false&&d.must_be_online!==0?'checked':''}>
-      <label for="df-must">MUST_ONLINE</label>
+      <label for="df-must">${t('MUST_ONLINE')}</label>
     </div>
   `;
 }
@@ -1771,7 +1771,7 @@ async function openDeviceDetails(devId, e) {
   const statusLabels = { online: t('ONLINE'), offline: t('OFFLINE'), unknown: t('NO_DATA') };
   showModal(`
     <h2><span>${t.icon || '📡'} ${escHtml(dev.name)}</span>${currentUser?.role === 'admin' ? `<button class="del-corner" onclick="deleteDevice(${dev.id},event,'${escHtml(dev.name)}')" title="Удалить">🗑</button>` : ''}</h2>
-    <div class="stat-row"><span>${t('TYPE')}</span><span class="val">${escHtml(t.l || dev.type)}</span></div>
+    <div class="stat-row"><span>${t('TYPE')}</span><span class="val">${escHtml(tType(dev.type))}</span></div>
     ${dev.ip ? `<div class="stat-row"><span>IP-${t('ADDRESS')}</span><span class="val">${escHtml(dev.ip)}</span></div>` : '<div class="stat-row"><span>IP-' + t('ADDRESS') + '</span><span class="val">—</span></div>'}
     <div class="stat-row"><span>${t('STATUS')}</span><span class="val">${statusLabels[dev.status] || dev.status}</span></div>
     <div class="stat-row"><span></span><span class="val">${intervalLabel(dev.ping_interval || 300)}</span></div>
