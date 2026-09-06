@@ -1566,7 +1566,7 @@ function deviceFormHtml(d = {}, allDevices = []) {
   const kidsOf = pid => allDevices.filter(x => (x.parent_id || null) === (pid || null));
   const sortDevs = arr => arr.sort((a, b) =>
     (DEVICE_TYPE_PRIO[a.type] ?? 9) - (DEVICE_TYPE_PRIO[b.type] ?? 9) || (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
-  let parentOpts = ['<option value="">(нет — ' + t('ROOT_LEVEL') + ')</option>'];
+  let parentOpts = ['<option value="">(' + t('NONE') + ' — ' + t('ROOT_LEVEL') + ')</option>'];
   function addTreeOpts(pid, depth) {
     for (const x of sortDevs(kidsOf(pid))) {
       if (String(x.id) === String(d.id || '')) continue;
@@ -2249,12 +2249,14 @@ const I18N_DICT = {
     ROOT_LEVEL: "корневой уровень",
     SENDING: "Отправляю",
     TOKEN_CLEARED: "Токен очищен",
-    TOKEN_SAVED: "Токен сохранён, бот запущен",},
+    TOKEN_SAVED: "Токен сохранён, бот запущен",DEVICES: "Устройства",
+    NONE: "нет",
+    },
   en: {
     LOGIN_BTN: "SIGN IN", LOGIN_USER: "Username", LOGIN_PASS: "Password",
     SITES: "SITES", MAP: "MAP", SETTINGS: "SETTINGS", LOGOUT: "LOGOUT", LOGGED_AS: "logged in as",
     BAD_CREDS: "Invalid username or password", TOO_MANY: "Too many attempts", SESSION_EXPIRED: "Session expired, please sign in again",
-    OBJECT: "OBJECT", EDIT_OBJECT: "Edit site", NO_SITES: "No sites yet", TOPOLOGY: "TOPOLOGY",
+    OBJECT: "SITE", EDIT_OBJECT: "Edit site", NO_SITES: "No sites yet", TOPOLOGY: "TOPOLOGY",
     DELETE_SITE: "Delete site", DELETE_SITE_Q: "Delete site and all its devices?", SITE_DOWN: "Site unavailable",
     ONLINE: "online", OFFLINE: "offline", NO_DATA: "no data",
     NO_DEVICES: "No devices", ALL_OK: "All online", HAS_PROBLEMS: "Has issues",
@@ -2310,7 +2312,9 @@ const I18N_DICT = {
     ROOT_LEVEL: "root level",
     SENDING: "Sending",
     TOKEN_CLEARED: "Token cleared",
-    TOKEN_SAVED: "Token saved, bot started",},
+    TOKEN_SAVED: "Token saved, bot started",DEVICES: "Devices",
+    NONE: "No",
+    },
 };
 </script>
 
