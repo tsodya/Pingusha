@@ -1778,8 +1778,8 @@ async function openDeviceDetails(devId, e) {
     <div class="modal-footer">
       ${currentUser?.role === 'admin' ? `<button class="btn btn-ghost" onclick="openAddChildDevice(${dev.id},${selectedSiteId},event)">${t('ADD_CHILD')}</button>
       <button class="btn btn-ghost" onclick="openEditDevice(${dev.id},event)>${t('EDIT')}</button>` : ''}
-      <button class="btn btn-ghost" onclick="openDeviceLog(${dev.id},event)">' + " + t(\'LOG\') + " + '</button>
-      <button class="btn btn-primary" onclick="closeModal()">" + t(\'CLOSE\') + "</button>
+      <button class="btn btn-ghost" onclick="openDeviceLog(${dev.id},event)">t('LOG')</button>
+      <button class="btn btn-primary" onclick="closeModal()">${t('CLOSE')}</button>
     </div>
   `);
 }
@@ -1795,7 +1795,7 @@ async function openDeviceLog(devId, e) {
   }).join('') : '<div style="font-size:11px;color:var(--text2)">' + t('LOG_EMPTY') + '</div>';
 
   showModal(`
-    <h2>' + " + t(\'STATUS_LOG\') + " + '</h2>
+    <h2>${t('STATUS_LOG')}</h2>
     <div class="log-list">${rows}</div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">${t('CLOSE')}</button>
@@ -1810,7 +1810,7 @@ function openEditSite(siteId) {
   const site = sites.find(s => s.id === siteId);
   if (!site) return;
   showModal(`
-    <h2>" + t(\'EDIT_SITE\') + "</h2>
+    <h2>${t('EDIT_SITE')}</h2>
     <div class="field"><label>${t('NAME')}</label><input id="es-name" value="${escHtml(site.name)}"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
@@ -1828,7 +1828,7 @@ async function submitEditSite(siteId) {
 }
 
 async function deleteSite(siteId) {
-  if (!confirm(' + " + t(\'DELETE_SITE_CONF\') + " + ')) return;
+  if (!confirm(t('DELETE_SITE_CONF'))) return;
   await apiFetch(`/api/sites/${siteId}`, { method: 'DELETE' });
   closePanel();
   await loadSites();
@@ -1850,7 +1850,7 @@ async function loadAdminTab() {
         <span class="uname">${escHtml(u.username)}</span>
         <span class="urole ${u.role}">${u.role === 'admin' ? t('ADMIN') : t('MANAGER')}</span>
         ${u.role !== 'admin'
-          ? `<button class="dev-act-btn" onclick="openUserSites(${u.id},'${escHtml(u.username)}')" title="${' + " + t(\'SITE_RIGHTS\') + " + '}">🔒 ${u.site_ids?.length ?? 0}</button>`
+          ? `<button class="dev-act-btn" onclick="openUserSites(${u.id},'${escHtml(u.username)}')" title="${t('SITE_RIGHTS')}">🔒 ${u.site_ids?.length ?? 0}</button>`
           : ''}
         ${u.username !== currentUser.username
           ? `<button class="dev-act-btn del" onclick="deleteUser(${u.id})" title="${t('DELETE')}">✕</button>`
@@ -1880,7 +1880,7 @@ async function doExport() {
   const res = await fetch(`/api/sites/${siteId}/export`, {
     credentials: 'same-origin'
   });
-  if (!res.ok) { alert(' + " + t(\'EXPORT_ERR\') + " + '); return; }
+  if (!res.ok) { alert(t('EXPORT_ERR')); return; }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1944,7 +1944,7 @@ async function submitAddUser() {
 }
 
 async function deleteUser(uid) {
-  if (!confirm(' + " + t(\'DELETE_USER_Q\') + " + ')) return;
+  if (!confirm(t('DELETE_USER_Q'))) return;
   await apiFetch(`/api/users/${uid}`, { method: 'DELETE' });
   loadAdminTab();
 }
@@ -1969,8 +1969,8 @@ async function openUserSites(uid, username) {
     </label>
   `).join('');
   showModal(`
-    <h2>' + " + t(\'MANAGER_RIGHTS\') + " + '</h2>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">${escHtml(username)} — ${" + t(\'SITE_ACCESS\') + "}</div>
+    <h2>t('MANAGER_RIGHTS')</h2>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">${escHtml(username)} — ${t('SITE_ACCESS')}</div>
     <div class="site-checks">${rows || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES') + '</div>'}</div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
@@ -1999,7 +1999,7 @@ async function changePassword() {
       body: JSON.stringify({ old_password: o, new_password: n }),
     });
     msg.style.color = 'var(--green)';
-    msg.textContent = ' + " + t(\'PASS_UPDATED\') + " + ';
+    msg.textContent = t('PASS_UPDATED');
     document.getElementById('cp-old').value = '';
     document.getElementById('cp-new').value = '';
   } catch (e) {
@@ -2094,7 +2094,7 @@ async function loadNotifications() {
 async function bindTelegram() {
   const key = document.getElementById('nf-key').value.trim();
   const msg = document.getElementById('nf-msg');
-  if (!key) { msg.textContent = ' + " + t(\'ENTER_KEY\') + " + '; return; }
+  if (!key) { msg.textContent = t('ENTER_KEY'); return; }
   try {
     const res = await apiFetch('/api/notifications/bind', { method: 'POST', body: JSON.stringify({ key }) });
     msg.style.color = 'var(--green)';
