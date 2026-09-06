@@ -1331,7 +1331,7 @@ function toggleAddSite() {
 function openAddSiteModal(lat, lng) {
   showModal(`
     <h2>${t('NEW_SITE')}</h2>
-    <div class="field"><label>NAME</label><input id="ns-name" type="text" placeholder="Офис №1"></div>
+    <div class="field"><label>${t('NAME')}</label><input id="ns-name" type="text" placeholder="Офис №1"></div>
     <div style="font-size:10px;color:var(--text2)">${t('COORDS')}: ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
@@ -1582,16 +1582,16 @@ function deviceFormHtml(d = {}, allDevices = []) {
     <div class="field"><label>${t('NAME')}</label>
       <input id="df-name" value="${escHtml(d.name||'')}">
     </div>
-    <div class="field"><label>TYPE</label>
+    <div class="field"><label>${t('TYPE')}</label>
       <div class="type-radios">${typeRadios}</div>
     </div>
-    <div class="field"><label>PARENT_DEVICE</label>
+    <div class="field"><label>${t('PARENT_DEVICE')}</label>
       <select id="df-parent">${parentOpts.join('')}</select>
     </div>
     <div id="df-ip-wrap" class="field"><label>IP-${t('ADDRESS')}</label>
       <input id="df-ip" value="${escHtml(d.ip||'')}" placeholder="192.168.1.1">
     </div>
-    <div id="df-interval-wrap" class="field"><label>PING_INTERVAL</label>
+    <div id="df-interval-wrap" class="field"><label>${t('PING_INTERVAL')}</label>
       <div class="interval-radios">${ivRadios}</div>
     </div>
     <div id="df-must-wrap" class="checkbox-row">
