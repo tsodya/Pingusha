@@ -1490,7 +1490,7 @@ async function renderPanel(site) {
       <button class="inline-btn" style="width:auto" onclick="openAddDevice(${site.id})">+ ${t('T_DEVICE')}</button>
       <button class="inline-btn" style="width:auto" onclick="toggleOrderMode()">${editingOrder ? '✓ ' + t('DONE') : '↕ ' + t('ORDER')}</button>
       <button class="inline-btn" style="width:auto" onclick="moveSiteMode(${site.id})">📍 ${t('MOVE')}</button>
-      <button class="inline-btn" style="width:auto" onclick="openEditSite(${site.id})">✎ Объект</button>
+      <button class="inline-btn" style="width:auto" onclick="openEditSite(${site.id})">✎ ${t('EDIT_OBJECT')}</button>
       <button class="inline-btn" style="width:auto;border-color:var(--red);color:var(--red)" onclick="deleteSite(${site.id})">✕ ${t('DELETE_SITE')}</button>
     </div>` : '';
 
@@ -2193,7 +2193,7 @@ const I18N_DICT = {
     LOGIN_BTN: "ВОЙТИ", LOGIN_USER: "Логин", LOGIN_PASS: "Пароль",
     SITES: "ОБЪЕКТЫ", MAP: "КАРТА", SETTINGS: "НАСТРОЙКИ", LOGOUT: "ВЫЙТИ", LOGGED_AS: "вошёл как",
     BAD_CREDS: "Неверный логин или пароль", TOO_MANY: "Слишком много попыток", SESSION_EXPIRED: "Сессия истекла, войдите снова",
-    OBJECT: "ОБЪЕКТ", NO_SITES: "Объектов пока нет", TOPOLOGY: "ТОПОЛОГИЯ",
+    OBJECT: "ОБЪЕКТ", EDIT_OBJECT: "Изменить объект", NO_SITES: "Объектов пока нет", TOPOLOGY: "ТОПОЛОГИЯ",
     DELETE_SITE: "Удалить объект", DELETE_SITE_Q: "Удалить объект и все его устройства?", SITE_DOWN: "Объект недоступен",
     ONLINE: "в сети", OFFLINE: "недоступно", NO_DATA: "нет данных",
     NO_DEVICES: "Устройств нет", ALL_OK: "Всё в сети", HAS_PROBLEMS: "Есть проблемы",
@@ -2239,6 +2239,7 @@ const I18N_DICT = {
     T_AP: "Точка доступа",
     T_CAMERA: "Камера",
     T_NVR: "Регистратор",
+    T_DEVICE: "Устройство",
     AND_CHILDREN: "и все его дочерние",
     HE_SENDS_KEY: "он пришлёт ключ",
     KEY_EXAMPLE: "например: a1b2c3d4e5f6",
@@ -2253,7 +2254,7 @@ const I18N_DICT = {
     LOGIN_BTN: "SIGN IN", LOGIN_USER: "Username", LOGIN_PASS: "Password",
     SITES: "SITES", MAP: "MAP", SETTINGS: "SETTINGS", LOGOUT: "LOGOUT", LOGGED_AS: "logged in as",
     BAD_CREDS: "Invalid username or password", TOO_MANY: "Too many attempts", SESSION_EXPIRED: "Session expired, please sign in again",
-    OBJECT: "OBJECT", NO_SITES: "No sites yet", TOPOLOGY: "TOPOLOGY",
+    OBJECT: "OBJECT", EDIT_OBJECT: "Edit site", NO_SITES: "No sites yet", TOPOLOGY: "TOPOLOGY",
     DELETE_SITE: "Delete site", DELETE_SITE_Q: "Delete site and all its devices?", SITE_DOWN: "Site unavailable",
     ONLINE: "online", OFFLINE: "offline", NO_DATA: "no data",
     NO_DEVICES: "No devices", ALL_OK: "All online", HAS_PROBLEMS: "Has issues",
@@ -2299,6 +2300,7 @@ const I18N_DICT = {
     T_AP: "Access point",
     T_CAMERA: "Camera",
     T_NVR: "Recorder",
+    T_DEVICE: "Device",
     AND_CHILDREN: "and all its children",
     HE_SENDS_KEY: "it will send you the key",
     KEY_EXAMPLE: "e.g. a1b2c3d4e5f6",
