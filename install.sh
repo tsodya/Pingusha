@@ -5,6 +5,17 @@
 #
 set -e
 
+# ── Self-update: всегда выполняем СВЕЖУЮ версию скрипта ──
+# (CDN-кэш GitHub может отдать старую копию install.sh —
+#  эта секция скачивает актуальную и перезапускает её)
+TMP_SELF=$(mktemp)
+if curl -fsSL "https://github.com/tsodya/Pingusha/raw/main/install.sh" -o "$TMP_SELF" 2>/dev/null; then
+  if ! cmp -s "$TMP_SELF" "$0"; then
+    exec bash "$TMP_SELF"
+  fi
+fi
+rm -f "$TMP_SELF"
+
 BOLD='\033[1m'; NC='\033[0m'
 
 echo ""
