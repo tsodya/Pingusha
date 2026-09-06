@@ -1439,8 +1439,8 @@ async function renderPanel(site) {
       const icon = DEVICE_ICONS[dev.type] || '📡';
       let dotClass = 'dot-unknown';
       if (dev.type === 'switch') dotClass = 'dot-switch';
-      else if (dev._suppressed) dotClass = 'dot-suppressed';
       else if (dev.status === 'online') dotClass = 'dot-online';
+      else if (dev._suppressed) dotClass = 'dot-suppressed';
       else if (dev.status === 'offline') dotClass = 'dot-offline';
 
       const mustTag = ''; // «обяз» убран из дерева; функционал must_be_online остался в карточке
@@ -1765,10 +1765,10 @@ async function openDeviceDetails(devId, e) {
     dev = all.find(d => d.id === devId);
   } catch {}
   if (!dev) return;
-  const t = DEVICE_TYPES.find(x => x.v === dev.type) || {};
+  const dt = DEVICE_TYPES.find(x => x.v === dev.type) || {};
   const statusLabels = { online: t('ONLINE'), offline: t('OFFLINE'), unknown: t('NO_DATA') };
   showModal(`
-    <h2><span>${t.icon || '📡'} ${escHtml(dev.name)}</span>${currentUser?.role === 'admin' ? `<button class="del-corner" onclick="deleteDevice(${dev.id},event,'${escHtml(dev.name)}')" title="Удалить">🗑</button>` : ''}</h2>
+    <h2><span>${dt.icon || '📡'} ${escHtml(dev.name)}</span>${currentUser?.role === 'admin' ? `<button class="del-corner" onclick="deleteDevice(${dev.id},event,'${escHtml(dev.name)}')" title="${t('DELETE')}">🗑</button>` : ''}</h2>
     <div class="stat-row"><span>${t('TYPE')}</span><span class="val">${escHtml(tType(dev.type))}</span></div>
     ${dev.ip ? `<div class="stat-row"><span>IP-${t('ADDRESS')}</span><span class="val">${escHtml(dev.ip)}</span></div>` : '<div class="stat-row"><span>IP-' + t('ADDRESS') + '</span><span class="val">—</span></div>'}
     <div class="stat-row"><span>${t('STATUS')}</span><span class="val">${statusLabels[dev.status] || dev.status}</span></div>
@@ -1853,7 +1853,7 @@ async function loadAdminTab() {
           ? `<button class="dev-act-btn" onclick="openUserSites(${u.id},'${escHtml(u.username)}')" title="${' + " + t(\'SITE_RIGHTS\') + " + '}">🔒 ${u.site_ids?.length ?? 0}</button>`
           : ''}
         ${u.username !== currentUser.username
-          ? `<button class="dev-act-btn del" onclick="deleteUser(${u.id})" title="Удалить">✕</button>`
+          ? `<button class="dev-act-btn del" onclick="deleteUser(${u.id})" title="${t('DELETE')}">✕</button>`
           : ''}
       </div>
     `).join('');
