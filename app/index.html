@@ -1025,9 +1025,7 @@ function initMap() {
         carto: {
           type: 'raster',
           tiles: [
-            'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-            'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-            'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           ],
           tileSize: 256,
           attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
@@ -1046,7 +1044,7 @@ function initMap() {
   map.on('load', () => {
     let saved = null;
     try { saved = localStorage.getItem('pingusha_map'); } catch (e) {}
-    if (saved && MAP_SOURCES[saved]) setMapSource(saved);
+    if (saved && MAP_SOURCES[saved]) setMapSource(saved); else setMapSource('osm');
     loadSites();
   });
   map.on('click', onMapClick);
