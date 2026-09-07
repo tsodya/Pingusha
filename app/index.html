@@ -946,9 +946,16 @@ if (window.navigator.standalone) {
 async function saveLang(lang) {
   try { await apiFetch('/api/profile', { method: 'PUT', body: JSON.stringify({ lang }) }); } catch (e) {}
   setLang(lang);
-  // перерисовываем настройки и подсветку
-  const sec = [...document.querySelectorAll('.lang-pill')];
-  sec.forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  updateLangPills();
+}
+
+function updateLangPills() {
+  const cur = typeof _lang === 'string' ? _lang : 'en';
+  document.querySelectorAll('.lang-pill').forEach(b => {
+    const on = b.dataset.lang === cur;
+    b.classList.toggle('active', on);
+    b.innerHTML = (on ? '✓ ' : '') + (b.dataset.lang === 'en' ? 'English' : 'Русский');
+  });
 }
 
 function onLoginSuccess() {
@@ -958,8 +965,7 @@ function onLoginSuccess() {
     try {
       const pr = await apiFetch('/api/profile');
       setLang(pr.lang === 'ru' ? 'ru' : 'en');
-      const sec = [...document.querySelectorAll('.lang-pill')];
-      sec.forEach(b => b.classList.toggle('active', b.dataset.lang === (pr.lang || 'en')));
+      updateLangPills();
     } catch (e) {}
   })();
   document.getElementById('login-screen').style.display = 'none';
@@ -2444,6 +2450,7 @@ function applyI18n() {
     const key = el.dataset.i18n;
     if (dict[key]) el.textContent = dict[key];
   });
+  updateLangPills();
   pVisibility();
 }
 applyI18n();
