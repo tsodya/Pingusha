@@ -76,7 +76,7 @@ def init_db():
             username      TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role          TEXT NOT NULL DEFAULT 'manager',
-            lang          TEXT NOT NULL DEFAULT 'en',
+            lang          TEXT NOT NULL DEFAULT 'en'
         );
 
         CREATE TABLE IF NOT EXISTS sessions (
