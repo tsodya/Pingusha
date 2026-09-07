@@ -15,6 +15,7 @@ def _tz_name() -> str:
         name = os.environ.get("TZ", "Asia/Barnaul")
         try:
             conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
             row = conn.execute("SELECT timezone FROM notifications_config WHERE id=1").fetchone()
             if row and row["timezone"]:
                 name = row["timezone"]
