@@ -75,7 +75,8 @@ def init_db():
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
             username      TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            role          TEXT NOT NULL DEFAULT 'manager'
+            role          TEXT NOT NULL DEFAULT 'manager',
+            lang          TEXT NOT NULL DEFAULT 'en',
         );
 
         CREATE TABLE IF NOT EXISTS sessions (
@@ -169,6 +170,7 @@ def init_db():
     for t, col, ddl in [
         ("notify_config", "offline_delay", "INTEGER NOT NULL DEFAULT 20"),
         ("notifications_config", "timezone", "TEXT"),
+        ("users", "lang", "TEXT NOT NULL DEFAULT 'en'"),
     ]:
         cols = {r[1] for r in cur.execute(f"PRAGMA table_info({t})").fetchall()}
         if col not in cols:
@@ -377,14 +379,11 @@ def bot_loop():
             uname = msg["from"].get("username", "")
             display = (f"{first} {last}").strip() or uname or f"user{chat_id}"
             text = (msg.get("text") or "").strip()
-            if text.startswith("/start"):
+            if text.strip() in ("/start", "/start@PingushaBot", "/start@"):
                 # Приветствие + инструкция + кнопка «Контроль», затем ключ отдельным сообщением
-                send_telegram(chat_id,
-                    "👋 Привет! Это бот Пингушa.\n\n"
-                    "Скопируйте следующее сообщение (ключ) и вставьте его в "
-                    "Пингушa → Настройки → Уведомления → Привязать.\n\n"
-                    "Кнопка «Контроль» в любой момент пришлёт статус всех ваших объектов.",
-                    keyboard=[[CONTROL_BTN]])
+                hello_lang = _chat_lang(chat_id)
+                btn = bot_t(hello_lang, "ctrl_btn")
+                send_telegram(chat_id, bot_t(hello_lang, "hello"), keyboard=[[btn]])
                 key = secrets.token_hex(18)  # 36 символов
                 conn = sqlite3.connect(DB_PATH)
                 conn.execute(
@@ -394,7 +393,7 @@ def bot_loop():
                 conn.commit()
                 conn.close()
                 send_telegram(chat_id, key)
-            elif text.strip() == CONTROL_BTN:
+            elif text.strip() in CTRL_BTN_VARIANTS:
                 # Кнопка «Контроль»: статус ВСЕХ объектов, доступных аккаунту
                 conn = sqlite3.connect(DB_PATH)
                 conn.row_factory = sqlite3.Row
@@ -404,16 +403,14 @@ def bot_loop():
                 ).fetchone()
                 conn.close()
                 if not row:
-                    send_telegram(chat_id,
-                        "Аккаунт не привязан. Нажмите /start, получите ключ и вставьте его в "
-                        "Пингушу (Настройки → Уведомления).",
-                        keyboard=[[CONTROL_BTN]])
+                    lb = _chat_lang(chat_id)
+                    send_telegram(chat_id, bot_t(lb, "not_bound"), keyboard=[[bot_t(lb, "ctrl_btn")]])
                 else:
                     send_telegram(chat_id, build_all_summary_text(row["user_id"]))
             elif text:
                 # Прочее сообщение — короткая подсказка
-                send_telegram(chat_id, "Используйте /start или кнопку «Контроль».",
-                              keyboard=[[CONTROL_BTN]])
+                lb = _chat_lang(chat_id)
+                send_telegram(chat_id, bot_t(lb, "hint_start"), keyboard=[[bot_t(lb, "ctrl_btn")]])
 
 
 def user_site_ids(user_id: int):
@@ -442,6 +439,59 @@ def notify_site_ids(user_id: int, allowed_site_ids):
         return list(allowed_site_ids)  # галочки не трогали — все доступные
     return [sid for sid in allowed_site_ids if sid in checked]
 
+
+
+BOT_L = {
+    "ru": {
+        "ctrl_btn": "📊 Контроль",
+        "hello": "👋 Привет! Это бот Пингушa.\n\nСкопируйте следующее сообщение (ключ) и вставьте его в Пингушa → Настройки → Уведомления → Привязать.\n\nКнопка «Контроль» в любой момент пришлёт статус всех ваших объектов.",
+        "not_bound": "Аккаунт не привязан. Нажмите /start, получите ключ и вставьте его в Пингушу (Настройки → Уведомления).",
+        "hint_start": "Используйте /start или кнопку «Контроль».",
+        "offline_title": "🔴 Устройства не в сети более {delay} мин:",
+        "ctrl_title": "📋 Контроль {time} — Пингушa",
+        "ctrl_all_title": "📊 Контроль {time} — Пингушa",
+        "bound_ok": "✅ Привязка успешна! Уведомления Пингушa включены.",
+        "bound_off": "🔓 Привязка отменена. Уведомления отключены.",
+    },
+    "en": {
+        "ctrl_btn": "📊 Control",
+        "hello": "👋 Hi! This is Pingusha bot.\n\nCopy the next message (key) and paste it into Pingusha → Settings → Notifications → Bind.\n\nPress «Control» anytime to get the status of all your sites.",
+        "not_bound": "Account is not bound. Press /start, get the key and paste it into Pingusha (Settings → Notifications).",
+        "hint_start": "Use /start or press «Control».",
+        "offline_title": "🔴 Devices offline for more than {delay} min:",
+        "ctrl_title": "📋 Control {time} — Pingusha",
+        "ctrl_all_title": "📊 Control {time} — Pingusha",
+        "bound_ok": "✅ Bound successfully! Pingusha notifications are on.",
+        "bound_off": "🔓 Binding removed. Notifications are off.",
+    },
+}
+CTRL_BTN_VARIANTS = ("📊 Контроль", "📊 Control")
+
+def bot_t(lang: str, key: str, **kw):
+    d = BOT_L.get(lang) or BOT_L["en"]
+    s = d.get(key) or BOT_L["en"].get(key) or key
+    return s.format(**kw) if kw else s
+
+def _user_lang(conn, user_id: int) -> str:
+    try:
+        r = conn.execute("SELECT lang FROM users WHERE id=?", (user_id,)).fetchone()
+        return (r["lang"] if r and r["lang"] else "en")
+    except Exception:
+        return "en"
+
+def _chat_lang(chat_id: int) -> str:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        r = conn.execute(
+            "SELECT u.lang FROM telegram_bindings tb JOIN users u ON u.id=tb.user_id "
+            "WHERE tb.chat_id=? AND tb.user_id IS NOT NULL", (chat_id,)
+        ).fetchone()
+        return (r["lang"] if r and r["lang"] else "en")
+    except Exception:
+        return "en"
+    finally:
+        conn.close()
 
 DEVICE_ICONS = {
     "gateway": "🌐", "switch_managed": "🔀", "switch": "🔀",
@@ -490,7 +540,9 @@ def build_summary_text(user_id: int) -> str:
     """Сводка по объектам пользователя из подписки (для контроля и теста)."""
     allowed = user_site_ids(user_id)
     site_ids = notify_site_ids(user_id, allowed)
-    lines = [f"📋 Контроль {_now_local().strftime('%H:%M')} — Пингушa"]
+    conn2 = sqlite3.connect(DB_PATH); conn2.row_factory = sqlite3.Row
+    lg = _user_lang(conn2, user_id); conn2.close()
+    lines = [bot_t(lg, "ctrl_title", time=_now_local().strftime('%H:%M'))]
     for sid in site_ids:
         lines.append("\n" + build_site_tree_text(sid))
     return "\n".join(lines)
@@ -499,7 +551,9 @@ def build_summary_text(user_id: int) -> str:
 def build_all_summary_text(user_id: int) -> str:
     """Сводка по ВСЕМ объектам, доступным пользователю (кнопка «Контроль» в боте)."""
     site_ids = user_site_ids(user_id)
-    lines = [f"📊 Контроль {_now_local().strftime('%H:%M')} — Пингушa"]
+    conn2 = sqlite3.connect(DB_PATH); conn2.row_factory = sqlite3.Row
+    lg = _user_lang(conn2, user_id); conn2.close()
+    lines = [bot_t(lg, "ctrl_all_title", time=_now_local().strftime('%H:%M'))]
     for sid in site_ids:
         lines.append("\n" + build_site_tree_text(sid))
     return "\n".join(lines)
@@ -510,12 +564,12 @@ def check_offline_notifications():
     now = _now_local()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    # все offline-устройства, которые уже 5+ минут не в сети
+    # все offline-устройства (созревание по своей задержке — на пользователя)
     devices = conn.execute(
         "SELECT d.id, d.name, d.site_id, s.name AS site_name FROM devices d "
         "JOIN sites s ON s.id = d.site_id WHERE d.status='offline' AND d.must_be_online=1"
     ).fetchall()
-    pending = []
+    dev_changed = {}
     for dev in devices:
         row = conn.execute(
             "SELECT changed_at FROM status_log WHERE device_id=? AND new_status='offline' "
@@ -524,15 +578,14 @@ def check_offline_notifications():
         if not row:
             continue
         try:
-            changed = datetime.fromisoformat(row["changed_at"])
+            dev_changed[dev["id"]] = datetime.fromisoformat(row["changed_at"])
         except Exception:
             continue
-        if (now - changed).total_seconds() < OFFLINE_NOTIFY_DELAY_S:
-            continue
-        pending.append(dev)
     # кому слать: привязанные пользователи с правом на объект и галочкой
     users = conn.execute(
-        "SELECT u.id, tb.chat_id FROM users u JOIN telegram_bindings tb ON tb.user_id=u.id "
+        "SELECT u.id, u.lang, tb.chat_id, COALESCE(nc.offline_delay, 20) AS delay FROM users u "
+        "JOIN telegram_bindings tb ON tb.user_id=u.id "
+        "LEFT JOIN notify_config nc ON nc.user_id=u.id "
         "WHERE tb.user_id IS NOT NULL"
     ).fetchall()
     for u in users:
@@ -540,9 +593,15 @@ def check_offline_notifications():
         site_ids = notify_site_ids(u["id"], allowed)
         # устройства пользователя, про которые ещё не уведомляли
         my_pending = []
-        for d in pending:
+        delay_sec = (u["delay"] or 20) * 60
+        for d in devices:
             if d["site_id"] not in site_ids:
                 continue
+            ch = dev_changed.get(d["id"])
+            if ch is None:
+                continue
+            if (now - ch).total_seconds() < delay_sec:
+                continue  # ещё не созрело для этого пользователя
             already = conn.execute(
                 "SELECT 1 FROM notify_sent WHERE user_id=? AND device_id=?", (u["id"], d["id"])
             ).fetchone()
@@ -558,7 +617,7 @@ def check_offline_notifications():
         by_site = {}
         for d in my_pending:
             by_site.setdefault(d["site_id"], []).append(d)
-        parts = ["🔴 Устройства не в сети более 5 минут:"]
+        parts = [bot_t(u["lang"] or "en", "offline_title", delay=int(u["delay"] or 20))]
         for sid in sorted(by_site):
             site_name = by_site[sid][0]["site_name"]
             names = ", ".join(f"«{d['name']}»" for d in by_site[sid])
@@ -589,7 +648,7 @@ def check_control_messages():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     users = conn.execute(
-        "SELECT u.id, tb.chat_id, tb.username, nc.control_time FROM users u "
+        "SELECT u.id, u.lang, tb.chat_id, tb.username, nc.control_time FROM users u "
         "JOIN telegram_bindings tb ON tb.user_id=u.id "
         "JOIN notify_config nc ON nc.user_id=u.id "
         "WHERE tb.user_id IS NOT NULL AND nc.control_enabled=1"
@@ -604,7 +663,7 @@ def check_control_messages():
             continue
         allowed = user_site_ids(u["id"])
         site_ids = notify_site_ids(u["id"], allowed)
-        lines = [f"📋 Контроль {cur_time} — Пингушa"]
+        lines = [bot_t(u["lang"] or "en", "ctrl_title", time=cur_time)]
         for sid in site_ids:
             lines.append("\n" + build_site_tree_text(sid))
         send_telegram(u["chat_id"], "\n".join(lines))
@@ -1069,7 +1128,7 @@ def bind_telegram(body: BindBody, user=Depends(get_session_user), db=Depends(get
             (user["id"], sid),
         )
     db.commit()
-    send_telegram(row["chat_id"], "✅ Привязка успешна! Уведомления Пингушa включены.")
+    send_telegram(row["chat_id"], bot_t(_user_lang(db, user["id"]), "bound_ok"))
     return {"telegram_username": row["username"]}
 
 
@@ -1079,7 +1138,7 @@ def unbind_telegram(user=Depends(get_session_user), db=Depends(get_db)):
         "SELECT chat_id FROM telegram_bindings WHERE user_id=?", (user["id"],)
     ).fetchone()
     if bind:
-        send_telegram(bind["chat_id"], "🔓 Привязка отменена. Уведомления отключены.")
+        send_telegram(bind["chat_id"], bot_t(_user_lang(db, user["id"]), "bound_off"))
     db.execute("UPDATE telegram_bindings SET user_id=NULL WHERE user_id=?", (user["id"],))
     db.execute("DELETE FROM notify_sent WHERE user_id=?", (user["id"],))
     db.execute("DELETE FROM control_sent WHERE user_id=?", (user["id"],))
@@ -1138,6 +1197,21 @@ def put_settings(body: SettingsBody, user=Depends(require_admin), db=Depends(get
         db.commit()
         _tz_state["name"] = None  # сброс кэша
     return {"ok": True, "timezone": _tz_name()}
+
+@app.get("/api/profile")
+def get_profile(user=Depends(get_session_user), db=Depends(get_db)):
+    row = db.execute("SELECT username, role, lang FROM users WHERE id=?", (user["id"],)).fetchone()
+    return {"username": row["username"], "role": row["role"], "lang": row["lang"] or "en"}
+
+class ProfileBody(BaseModel):
+    lang: Optional[str] = None
+
+@app.put("/api/profile")
+def put_profile(body: ProfileBody, user=Depends(get_session_user), db=Depends(get_db)):
+    if body.lang and body.lang in ("ru", "en"):
+        db.execute("UPDATE users SET lang=? WHERE id=?", (body.lang, user["id"]))
+        db.commit()
+    return {"ok": True}
 
 @app.get("/api/notifications/token")
 def get_notification_token(user=Depends(require_admin), db=Depends(get_db)):

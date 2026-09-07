@@ -91,6 +91,11 @@ body {
   background: transparent;
   font-family: var(--font-ui);
 }
+.pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #001018;
+}
 .pill:hover { border-color: var(--accent); color: var(--accent); }
 .pill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.07); }
 #user-info { font-size: 11px; color: var(--text2); }
@@ -835,6 +840,14 @@ body {
   <div id="admin-view">
     <h2 data-i18n="SETTINGS">НАСТРОЙКИ</h2>
     <div class="admin-section">
+      <h3 data-i18n="LANG_TITLE"></h3>
+      <div style="display:flex;gap:8px">
+        <button class="pill lang-pill" data-lang="en" onclick="saveLang('en')">English</button>
+        <button class="pill lang-pill" data-lang="ru" onclick="saveLang('ru')">Русский</button>
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin-top:6px" data-i18n="LANG_HINT"></div>
+    </div>
+    <div class="admin-section">
       <h3 data-i18n="NOTIFICATIONS"></h3>
       <div id="notif-body" style="font-size:12px;color:var(--text2)">…</div>
     </div>
@@ -930,8 +943,25 @@ if (window.navigator.standalone) {
   }
 }
 
+async function saveLang(lang) {
+  try { await apiFetch('/api/profile', { method: 'PUT', body: JSON.stringify({ lang }) }); } catch (e) {}
+  setLang(lang);
+  // перерисовываем настройки и подсветку
+  const sec = [...document.querySelectorAll('.lang-pill')];
+  sec.forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+}
+
 function onLoginSuccess() {
   document.getElementById('current-user').textContent = currentUser.username;
+  // язык пользователя — из профиля (БД)
+  (async () => {
+    try {
+      const pr = await apiFetch('/api/profile');
+      setLang(pr.lang === 'ru' ? 'ru' : 'en');
+      const sec = [...document.querySelectorAll('.lang-pill')];
+      sec.forEach(b => b.classList.toggle('active', b.dataset.lang === (pr.lang || 'en')));
+    } catch (e) {}
+  })();
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('tab-admin').style.display = '';   // Настройки — всем (уведомления)
   if (currentUser.role === 'admin') {
@@ -2242,7 +2272,7 @@ function escHtml(s) {
 const I18N_DICT = {
   ru: {
     LOGIN_BTN: "ВОЙТИ", LOGIN_USER: "Логин", LOGIN_PASS: "Пароль",
-    SITES: "ОБЪЕКТЫ", MAP: "КАРТА", SETTINGS: "НАСТРОЙКИ", LOGOUT: "ВЫЙТИ", LOGGED_AS: "вошёл как",
+    SITES: "ОБЪЕКТЫ", MAP: "КАРТА", SETTINGS: "НАСТРОЙКИ", LANG_TITLE: "Язык", LANG_HINT: "Язык интерфейса и сообщений бота (для этого пользователя)", LOGOUT: "ВЫЙТИ", LOGGED_AS: "вошёл как",
     BAD_CREDS: "Неверный логин или пароль", TOO_MANY: "Слишком много попыток", SESSION_EXPIRED: "Сессия истекла, войдите снова",
     OBJECT: "ОБЪЕКТ", EDIT_OBJECT: "Изменить объект", NO_SITES: "Объектов пока нет", TOPOLOGY: "ТОПОЛОГИЯ",
     DELETE_SITE: "Удалить объект", DELETE_SITE_Q: "Удалить объект и все его устройства?", SITE_DOWN: "Объект недоступен",
@@ -2307,7 +2337,7 @@ const I18N_DICT = {
     },
   en: {
     LOGIN_BTN: "SIGN IN", LOGIN_USER: "Username", LOGIN_PASS: "Password",
-    SITES: "SITES", MAP: "MAP", SETTINGS: "SETTINGS", LOGOUT: "LOGOUT", LOGGED_AS: "logged in as",
+    SITES: "SITES", MAP: "MAP", SETTINGS: "SETTINGS", LANG_TITLE: "Language", LANG_HINT: "Interface and bot-message language (for this user)", LOGOUT: "LOGOUT", LOGGED_AS: "logged in as",
     BAD_CREDS: "Invalid username or password", TOO_MANY: "Too many attempts", SESSION_EXPIRED: "Session expired, please sign in again",
     OBJECT: "SITE", EDIT_OBJECT: "Edit site", NO_SITES: "No sites yet", TOPOLOGY: "TOPOLOGY",
     DELETE_SITE: "Delete site", DELETE_SITE_Q: "Delete site and all its devices?", SITE_DOWN: "Site unavailable",
@@ -2393,15 +2423,12 @@ function detectLang() {
   try {
     const q = new URLSearchParams(location.search).get('lang');
     if (q === 'ru' || q === 'en') return q;
-    const saved = localStorage.getItem('pingusha_lang');
-    if (saved === 'ru' || saved === 'en') return saved;
   } catch (e) {}
-  // по умолчанию интерфейс английский (русский — по выбору пользователя)
+  // по умолчанию интерфейс английский; язык пользователя — из профиля (настройки)
   return 'en';
 }
 function setLang(lang) {
-  _lang = lang;
-  try { localStorage.setItem('pingusha_lang', lang); } catch (e) {}
+  _lang = (lang === 'ru') ? 'ru' : 'en';
   applyI18n();
 }
 function toggleLang() {
@@ -2417,25 +2444,8 @@ function applyI18n() {
     const key = el.dataset.i18n;
     if (dict[key]) el.textContent = dict[key];
   });
-  const tg = document.getElementById('lang-toggle');
-  if (tg) tg.textContent = _lang === 'ru' ? 'EN' : 'RU';
-  renderTiles();
-  if (window.map && sites.length) { updateMapVisibility(); }
+  pVisibility();
 }
-// переключатель языка
-document.addEventListener('DOMContentLoaded', () => {
-  const tb = document.querySelector('#topbar');
-  if (tb && !document.getElementById('lang-toggle')) {
-    const btn = document.createElement('button');
-    btn.id = 'lang-toggle';
-    btn.className = 'pill';
-    btn.style.cssText = 'cursor:pointer';
-    btn.textContent = _lang === 'ru' ? 'EN' : 'RU';
-    btn.title = 'Language / Язык';
-    btn.onclick = toggleLang;
-    tb.appendChild(btn);
-  }
-});
 applyI18n();
 </script>
 </body>
