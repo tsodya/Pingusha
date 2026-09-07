@@ -5,6 +5,31 @@ import os
 import platform
 import secrets
 import sqlite3
+from zoneinfo import ZoneInfo
+import time as _time
+
+_tz_state = {"name": None, "ts": 0.0}
+
+def _tz_name() -> str:
+    if _tz_state["name"] is None or _time.time() - _tz_state["ts"] > 30:
+        name = os.environ.get("TZ", "Asia/Barnaul")
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            row = conn.execute("SELECT timezone FROM notifications_config WHERE id=1").fetchone()
+            if row and row["timezone"]:
+                name = row["timezone"]
+            conn.close()
+        except Exception:
+            pass
+        _tz_state["name"] = name
+        _tz_state["ts"] = _time.time()
+    return _tz_state["name"]
+
+def _now_local():
+    try:
+        return datetime.now(ZoneInfo(_tz_name())).replace(tzinfo=None)
+    except Exception:
+        return datetime.now()
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -116,7 +141,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS notify_config (
             user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             control_time    TEXT NOT NULL DEFAULT '10:00',
-            control_enabled INTEGER NOT NULL DEFAULT 1
+            control_enabled INTEGER NOT NULL DEFAULT 1,
+            offline_delay   INTEGER NOT NULL DEFAULT 20
         );
 
         CREATE TABLE IF NOT EXISTS notify_sites (
@@ -138,6 +164,15 @@ def init_db():
             PRIMARY KEY (user_id, date)
         );
     """)
+    # Миграции: добавляем новые колонки в существующие таблицы (старые БД)
+    for t, col, ddl in [
+        ("notify_config", "offline_delay", "INTEGER NOT NULL DEFAULT 20"),
+        ("notifications_config", "timezone", "TEXT"),
+    ]:
+        cols = {r[1] for r in cur.execute(f"PRAGMA table_info({t})").fetchall()}
+        if col not in cols:
+            cur.execute(f"ALTER TABLE {t} ADD COLUMN {col} {ddl}")
+    conn.commit()
     # Первый запуск: создаём ТОЛЬКО admin.
     # Пароль берём из ADMIN_PASSWORD (env); если не задан — генерируем и печатаем в консоль.
     if cur.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
@@ -177,7 +212,7 @@ def get_session_user(
     ).fetchone()
     if not row:
         raise HTTPException(status_code=401, detail="Invalid session")
-    if datetime.fromisoformat(row["expires_at"]) < datetime.now():
+    if datetime.fromisoformat(row["expires_at"]) < _now_local():
         db.execute("DELETE FROM sessions WHERE token=?", (pingusha_session,))
         db.commit()
         raise HTTPException(status_code=401, detail="Session expired")
@@ -226,7 +261,7 @@ def log_status_change(conn, device_id: int, old_status: str, new_status: str):
         return
     conn.execute(
         "INSERT INTO status_log (device_id, old_status, new_status, changed_at) VALUES (?,?,?,?)",
-        (device_id, old_status, new_status, datetime.now().isoformat()),
+        (device_id, old_status, new_status, _now_local().isoformat()),
     )
     conn.execute("""
         DELETE FROM status_log WHERE device_id=? AND id NOT IN (
@@ -260,12 +295,12 @@ async def poller_loop():
                     new_status = "online" if alive else "offline"
                     conn.execute(
                         "UPDATE devices SET status=?, last_checked=? WHERE id=?",
-                        (new_status, datetime.now().isoformat(), dev["id"]),
+                        (new_status, _now_local().isoformat(), dev["id"]),
                     )
                     log_status_change(conn, dev["id"], dev["status"], new_status)
                     _last_ping[dev["id"]] = now
             # Clean expired sessions
-            conn.execute("DELETE FROM sessions WHERE expires_at < ?", (datetime.now().isoformat(),))
+            conn.execute("DELETE FROM sessions WHERE expires_at < ?", (_now_local().isoformat(),))
             conn.commit()
             conn.close()
         except Exception as e:
@@ -353,7 +388,7 @@ def bot_loop():
                 conn = sqlite3.connect(DB_PATH)
                 conn.execute(
                     "INSERT INTO telegram_bindings (binding_key, chat_id, username, created_at) VALUES (?,?,?,?)",
-                    (key, chat_id, display, datetime.now().isoformat()),
+                    (key, chat_id, display, _now_local().isoformat()),
                 )
                 conn.commit()
                 conn.close()
@@ -454,7 +489,7 @@ def build_summary_text(user_id: int) -> str:
     """Сводка по объектам пользователя из подписки (для контроля и теста)."""
     allowed = user_site_ids(user_id)
     site_ids = notify_site_ids(user_id, allowed)
-    lines = [f"📋 Контроль {datetime.now().strftime('%H:%M')} — Пингушa"]
+    lines = [f"📋 Контроль {_now_local().strftime('%H:%M')} — Пингушa"]
     for sid in site_ids:
         lines.append("\n" + build_site_tree_text(sid))
     return "\n".join(lines)
@@ -463,7 +498,7 @@ def build_summary_text(user_id: int) -> str:
 def build_all_summary_text(user_id: int) -> str:
     """Сводка по ВСЕМ объектам, доступным пользователю (кнопка «Контроль» в боте)."""
     site_ids = user_site_ids(user_id)
-    lines = [f"📊 Контроль {datetime.now().strftime('%H:%M')} — Пингушa"]
+    lines = [f"📊 Контроль {_now_local().strftime('%H:%M')} — Пингушa"]
     for sid in site_ids:
         lines.append("\n" + build_site_tree_text(sid))
     return "\n".join(lines)
@@ -471,7 +506,7 @@ def build_all_summary_text(user_id: int) -> str:
 
 def check_offline_notifications():
     """Раз в минуту: все устройства offline 5+ минут собираются в ОДНО уведомление."""
-    now = datetime.now()
+    now = _now_local()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     # все offline-устройства, которые уже 5+ минут не в сети
@@ -547,7 +582,7 @@ def check_offline_notifications():
 
 def check_control_messages():
     """Ежедневное контрольное сообщение со статусами всех устройств."""
-    now = datetime.now()
+    now = _now_local()
     cur_time = now.strftime("%H:%M")
     today = now.date().isoformat()
     conn = sqlite3.connect(DB_PATH)
@@ -657,6 +692,9 @@ class UserSitesBody(BaseModel):
 class BindBody(BaseModel):
     key: str
 
+class SettingsBody(BaseModel):
+    timezone: Optional[str] = None
+
 class NotifyConfigBody(BaseModel):
     control_time: Optional[str] = None
     control_enabled: Optional[bool] = None
@@ -733,10 +771,10 @@ def login(body: LoginBody, request: Request, response: Response, db=Depends(get_
     # успешный вход — сбрасываем счётчик
     _login_attempts.pop(ip, None)
     token = secrets.token_hex(32)
-    expires = (datetime.now() + timedelta(days=SESSION_TTL_DAYS)).isoformat()
+    expires = (_now_local() + timedelta(days=SESSION_TTL_DAYS)).isoformat()
     db.execute(
         "INSERT INTO sessions (token, user_id, expires_at, created_at) VALUES (?,?,?,?)",
-        (token, row["id"], expires, datetime.now().isoformat()),
+        (token, row["id"], expires, _now_local().isoformat()),
     )
     db.commit()
     response.set_cookie(
@@ -810,7 +848,7 @@ def list_sites(user=Depends(get_session_user), db=Depends(get_db)):
 def create_site(body: SiteCreate, user=Depends(require_admin), db=Depends(get_db)):
     cur = db.execute(
         "INSERT INTO sites (name, lat, lng, created_at) VALUES (?,?,?,?)",
-        (body.name, body.lat, body.lng, datetime.now().isoformat()),
+        (body.name, body.lat, body.lng, _now_local().isoformat()),
     )
     new_id = cur.lastrowid
     # Новый объект автоматически включается в уведомления всех пользователей
@@ -1016,7 +1054,7 @@ def bind_telegram(body: BindBody, user=Depends(get_session_user), db=Depends(get
     db.execute("UPDATE telegram_bindings SET user_id=NULL WHERE user_id=?", (user["id"],))
     db.execute(
         "UPDATE telegram_bindings SET user_id=?, bound_at=? WHERE id=?",
-        (user["id"], datetime.now().isoformat(), row["id"]),
+        (user["id"], _now_local().isoformat(), row["id"]),
     )
     # дефолтный конфиг
     db.execute(
@@ -1087,6 +1125,19 @@ def test_notification(user=Depends(get_session_user), db=Depends(get_db)):
     return {"ok": True}
 
 
+@app.get("/api/settings")
+def get_settings(user=Depends(get_session_user), db=Depends(get_db)):
+    return {"timezone": _tz_name()}
+
+@app.put("/api/settings")
+def put_settings(body: SettingsBody, user=Depends(require_admin), db=Depends(get_db)):
+    if body.timezone:
+        db.execute("INSERT OR IGNORE INTO notifications_config (id) VALUES (1)")
+        db.execute("UPDATE notifications_config SET timezone=? WHERE id=1", (body.timezone,))
+        db.commit()
+        _tz_state["name"] = None  # сброс кэша
+    return {"ok": True, "timezone": _tz_name()}
+
 @app.get("/api/notifications/token")
 def get_notification_token(user=Depends(require_admin), db=Depends(get_db)):
     env_token = os.environ.get("TELEGRAM_TOKEN", "").strip()
@@ -1136,7 +1187,7 @@ def import_site(body: ImportBody, user=Depends(require_admin), db=Depends(get_db
     devices_data = data["devices"]
     cur = db.execute(
         "INSERT INTO sites (name, lat, lng, created_at) VALUES (?,?,?,?)",
-        (site_data["name"], site_data["lat"], site_data["lng"], datetime.now().isoformat()),
+        (site_data["name"], site_data["lat"], site_data["lng"], _now_local().isoformat()),
     )
     new_site_id = cur.lastrowid
     id_map = {}

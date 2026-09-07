@@ -2046,6 +2046,23 @@ async function loadNotifications() {
     }
   }
 
+  let tzRow = '';
+  if (currentUser?.role === 'admin') {
+    try {
+      const st = await apiFetch('/api/settings');
+      const tzList = [
+        ['UTC', 'UTC (London)'], ['Europe/Moscow', 'Moscow (GMT+3)'],
+        ['Asia/Yekaterinburg', 'Yekaterinburg (GMT+5)'], ['Asia/Barnaul', 'Barnaul (GMT+7)'],
+        ['Asia/Novosibirsk', 'Novosibirsk (GMT+7)'], ['Asia/Krasnoyarsk', 'Krasnoyarsk (GMT+7)'],
+        ['Asia/Irkutsk', 'Irkutsk (GMT+8)'], ['Asia/Yakutsk', 'Yakutsk (GMT+9)'],
+        ['Asia/Vladivostok', 'Vladivostok (GMT+10)'], ['Asia/Kamchatka', 'Kamchatka (GMT+12)'],
+      ];
+      tzRow = '<div class="field"><label>' + t('TIMEZONE') + '</label><select id="nf-tz">'
+        + tzList.map(z => '<option value="' + z[0] + '"' + (st.timezone === z[0] ? ' selected' : '') + '>' + z[1] + '</option>').join('')
+        + '</select></div>';
+    } catch (e) {}
+  }
+
   let html = tokenBlock;
   if (!cfg.bot_username) {
     html += `<div style="color:var(--text2);margin-bottom:10px">${t('BOT_NOT_SETUP')}.</div>`;
@@ -2081,6 +2098,7 @@ async function loadNotifications() {
   html += `
     <div class="field"><label>${t('DAILY_CTRL')}</label>
       <input type="time" id="nf-time" value="${escHtml(cfg.control_time)}"></div>
+    ${tzRow}
     <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">${t('NOTIFY_SITES')}</div>
     <div class="site-checks" style="max-height:30vh">${siteChecks || '<div style="font-size:11px;color:var(--text2)">' + t('NO_SITES2') + '</div>'}</div>
     <div style="margin-top:14px">
@@ -2133,6 +2151,10 @@ async function saveNotifyConfig() {
   };
   try {
     await apiFetch('/api/notifications/config', { method: 'PUT', body: JSON.stringify(body) });
+    const tzSel = document.getElementById('nf-tz');
+    if (tzSel) {
+      await apiFetch('/api/settings', { method: 'PUT', body: JSON.stringify({ timezone: tzSel.value }) });
+    }
     if (msg) { msg.style.color = 'var(--green)'; msg.textContent = t('SAVED'); }
   } catch (e) {
     if (msg) { msg.style.color = 'var(--red)'; msg.textContent = e.message; }
@@ -2230,7 +2252,7 @@ const I18N_DICT = {
     BOT_TOKEN: "Токен Telegram-бота", BOT_TOKEN_LBL: "Токен бота (от @BotFather)", BOT_TOKEN_HINT: "Создайте бота у @BotFather и вставьте токен. Уведомления доступны всем пользователям.",
     BOUND_PREFIX: "Привязан", UNBIND: "Отвязать", OPEN_BOT: "Открыть бота", ENTER_KEY: "Введите ключ",
     KEY_FROM_BOT: "Ключ из бота (ответ на /start)", BIND: "Привязать", TEST: "Тест", SENT_CHECK_TG: "✅ Отправлено — проверьте Telegram",
-    DAILY_CTRL: "Контрольное сообщение каждый день (время барнаульское)", NOTIFY_SITES: "Уведомлять об объектах",
+    TIMEZONE: "Часовой пояс", DAILY_CTRL: "Контрольное сообщение каждый день (время барнаульское)", NOTIFY_SITES: "Уведомлять об объектах",
     USERS: "Пользователи", ADD_USER: "+ Добавить пользователя", DELETE_USER_Q: "Удалить пользователя?",
     MANAGER_RIGHTS: "ПРАВА МЕНЕДЖЕРА", SITE_RIGHTS: "Права на объекты", SITE_ACCESS: "доступ к объектам",
     CHANGE_PASS: "Сменить пароль", CUR_PASS: "Текущий пароль", NEW_PASS: "Новый пароль", PASS_UPDATED: "Пароль обновлён",
@@ -2295,7 +2317,7 @@ const I18N_DICT = {
     BOT_TOKEN: "Telegram bot token", BOT_TOKEN_LBL: "Bot token (from @BotFather)", BOT_TOKEN_HINT: "Create a bot with @BotFather and paste the token. Notifications are available to all users.",
     BOUND_PREFIX: "Bound", UNBIND: "Unbind", OPEN_BOT: "Open bot", ENTER_KEY: "Enter key",
     KEY_FROM_BOT: "Key from bot (/start reply)", BIND: "Bind", TEST: "Test", SENT_CHECK_TG: "✅ Sent — check Telegram",
-    DAILY_CTRL: "Daily control message (Barnaul time)", NOTIFY_SITES: "Notify about sites",
+    TIMEZONE: "Timezone", DAILY_CTRL: "Daily control message (Barnaul time)", NOTIFY_SITES: "Notify about sites",
     USERS: "Users", ADD_USER: "+ Add user", DELETE_USER_Q: "Delete user?",
     MANAGER_RIGHTS: "MANAGER RIGHTS", SITE_RIGHTS: "Site rights", SITE_ACCESS: "site access",
     CHANGE_PASS: "Change password", CUR_PASS: "Current password", NEW_PASS: "New password", PASS_UPDATED: "Password updated",
