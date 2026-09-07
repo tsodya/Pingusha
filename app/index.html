@@ -52,12 +52,13 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 0 20px;
-  height: 52px;
+  padding: env(safe-area-inset-top, 0px) calc(20px + env(safe-area-inset-right, 0px)) 0 calc(20px + env(safe-area-inset-left, 0px));
+  height: calc(52px + env(safe-area-inset-top, 0px));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   z-index: 1000;
+  box-sizing: border-box;
 }
 #topbar h1 {
   font-family: var(--font-hd);
@@ -934,14 +935,8 @@ async function doLogin() {
   }
 }
 
-// iOS PWA (standalone): страховка от чёлки — если safe-area не применился (старый кэш),
-// сдвигаем шапку вручную, чтобы надписи не уходили под чёлку
-if (window.navigator.standalone) {
-  const pad = parseInt(getComputedStyle(document.body).paddingTop);
-  if (pad < 30) {
-    document.body.style.paddingTop = '47px';
-  }
-}
+// iOS PWA: шапка учитывает чёлку/островок через CSS env(safe-area-inset-top) —
+// это работает на всех iPhone (Notch 47px, Dynamic Island 59px) без жёстких костылей.
 
 async function saveLang(lang) {
   try { await apiFetch('/api/profile', { method: 'PUT', body: JSON.stringify({ lang }) }); } catch (e) {}
