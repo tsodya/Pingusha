@@ -135,7 +135,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 8px 14px;
+  padding: 5px 12px;
   font-size: 11px;
   font-family: var(--font-ui);
   cursor: pointer;
@@ -144,7 +144,7 @@ body {
   white-space: nowrap;
 }
 .map-btn:hover { border-color: var(--accent); color: var(--accent); }
-.map-btn.active { background: rgba(0,229,255,.1); border-color: var(--accent); color: var(--accent); }
+.map-btn.active { background: var(--surface); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 /* ── Site panel — fullscreen overlay ── */
 #side-panel {
@@ -810,7 +810,7 @@ body {
   <div id="map-wrap" style="display:none">
     <div id="map"></div>
     <div id="map-controls" style="display:none">
-      <button class="map-btn active" id="btn-add-site" onclick="toggleAddSite()" style="display:none" data-i18n="ADD_SITE_BTN"></button>
+      <button class="map-btn" id="btn-add-site" onclick="toggleAddSite()" style="display:none" data-i18n="ADD_SITE_BTN"></button>
       <select id="map-source" onchange="setMapSource(this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px">
         <option value="carto">CARTO</option>
         <option value="osm">OSM</option>
