@@ -1813,7 +1813,7 @@ async function openDeviceDetails(devId, e) {
     ${dev.last_checked ? `<div class="stat-row"><span>${t('CHECKED')}</span><span class="val" style="font-size:10px">${escHtml(dev.last_checked)}</span></div>` : ''}
     <div class="modal-footer">
       ${currentUser?.role === 'admin' ? `<button class="btn btn-ghost" onclick="openAddChildDevice(${dev.id},${selectedSiteId},event)">${t('ADD_CHILD')}</button>
-      <button class="btn btn-ghost" onclick="openEditDevice(${dev.id},event)>${t('EDIT')}</button>` : ''}
+      <button class="btn btn-ghost" onclick="openEditDevice(${dev.id},event)">${t('EDIT')}</button>` : ''}
       <button class="btn btn-ghost" onclick="openDeviceLog(${dev.id},event)">${t('LOG')}</button>
       <button class="btn btn-primary" onclick="closeModal()">${t('CLOSE')}</button>
     </div>
