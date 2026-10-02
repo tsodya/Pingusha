@@ -1039,6 +1039,25 @@ def delete_user(user_id: int, user=Depends(require_admin), db=Depends(get_db)):
     return {"ok": True}
 
 
+class PasswordResetBody(BaseModel):
+    password: str
+
+
+@app.put("/api/users/{user_id}/password")
+def set_user_password(user_id: int, body: PasswordResetBody,
+                      user=Depends(require_admin), db=Depends(get_db)):
+    """Админ задаёт новый пароль пользователю (менеджеру)."""
+    target = db.execute("SELECT id, username FROM users WHERE id=?", (user_id,)).fetchone()
+    if not target:
+        raise HTTPException(404, "User not found")
+    if not body.password or len(body.password) < 4:
+        raise HTTPException(400, "Пароль слишком короткий (минимум 4 символа)")
+    db.execute("UPDATE users SET password_hash=? WHERE id=?",
+               (hash_password(body.password), user_id))
+    db.commit()
+    return {"ok": True, "username": target["username"]}
+
+
 @app.put("/api/users/{user_id}/sites")
 def set_user_sites(user_id: int, body: UserSitesBody, user=Depends(require_admin), db=Depends(get_db)):
     """Назначить менеджеру права на просмотр объектов."""

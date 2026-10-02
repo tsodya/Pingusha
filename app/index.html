@@ -1883,6 +1883,7 @@ async function loadAdminTab() {
         ${u.role !== 'admin'
           ? `<button class="dev-act-btn" onclick="openUserSites(${u.id},'${escHtml(u.username)}')" title="${t('SITE_RIGHTS')}">🔒 ${u.site_ids?.length ?? 0}</button>`
           : ''}
+        <button class="dev-act-btn" onclick="openSetPassword(${u.id},'${escHtml(u.username)}')" title="${t('CHANGE_PASSWORD')}">🔑</button>
         ${u.username !== currentUser.username
           ? `<button class="dev-act-btn del" onclick="deleteUser(${u.id})" title="${t('DELETE')}">✕</button>`
           : ''}
@@ -1982,6 +1983,38 @@ async function deleteUser(uid) {
 
 let _userSitesCache = { userId: null, sites: [] };
 let _formDevices = [];  // список устройств для формы (onParentChange)
+
+function openSetPassword(userId, username) {
+  showModal(`
+    <h2>${t('CHANGE_PASSWORD')}</h2>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">${escHtml(username)}</div>
+    <div class="field"><label>${t('NEW_PASSWORD')}</label>
+      <input type="text" id="pw-new" autocomplete="new-password" placeholder="...">
+    </div>
+    <div id="pw-msg" style="font-size:11px;min-height:16px;margin:6px 0"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">${t('CANCEL')}</button>
+      <button class="btn" onclick="saveUserPassword(${userId})">${t('SAVE')}</button>
+    </div>
+  `);
+}
+
+async function saveUserPassword(userId) {
+  const inp = document.getElementById('pw-new');
+  const msg = document.getElementById('pw-msg');
+  const pw = inp ? inp.value : '';
+  if (pw.length < 4) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = t('PASSWORD_TOO_SHORT'); }
+    return;
+  }
+  try {
+    await apiFetch('/api/users/' + userId + '/password', { method: 'PUT', body: JSON.stringify({ password: pw }) });
+    if (msg) { msg.style.color = 'var(--green)'; msg.textContent = 'OK - ' + t('PASSWORD_SET'); }
+    setTimeout(closeModal, 1200);
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = String((e && e.message) || e); }
+  }
+}
 
 async function openUserSites(uid, username) {
   let siteList = [];
@@ -2281,7 +2314,7 @@ const I18N_DICT = {
     NO_DEVICES: "Устройств нет", ALL_OK: "Всё в сети", HAS_PROBLEMS: "Есть проблемы",
     TYPE: "Тип", STATUS: "Статус", PING_INTERVAL: "Интервал пинга", MUST_ONLINE: "Должно быть в сети", CHECKED: "Проверено",
     YES: "да", NO: "нет",
-    ADD_CHILD: "+ Дочернее", LOG: "Лог", EDIT: "Редактировать", DELETE: "Удалить", CLOSE: "Закрыть",
+    ADD_CHILD: "+ Дочернее", LOG: "Лог", EDIT: "Редактировать", DELETE: "Удалить", CHANGE_PASSWORD: "Сменить пароль", NEW_PASSWORD: "Новый пароль", PASSWORD_SET: "Пароль изменён", PASSWORD_TOO_SHORT: "Слишком короткий (минимум 4 символа)", CLOSE: "Закрыть",
     INFO: "Информация", UP: "Вверх", DOWN: "Вниз", DONE: "Готово", ORDER: "Порядок", MOVE: "Переместить", CLICK_MAP: "клик по карте", REFRESH: "Обновить",
     NEW_SITE: "НОВЫЙ ОБЪЕКТ", EDIT_SITE: "РЕДАКТИРОВАТЬ ОБЪЕКТ",
     NEW_DEVICE: "НОВОЕ УСТРОЙСТВО", EDIT_DEVICE: "РЕДАКТИРОВАТЬ УСТРОЙСТВО", CHILD_DEVICE: "ДОЧЕРНЕЕ УСТРОЙСТВО",
@@ -2346,7 +2379,7 @@ const I18N_DICT = {
     NO_DEVICES: "No devices", ALL_OK: "All online", HAS_PROBLEMS: "Has issues",
     TYPE: "Type", STATUS: "Status", PING_INTERVAL: "Ping interval", MUST_ONLINE: "Must be online", CHECKED: "Checked",
     YES: "yes", NO: "no",
-    ADD_CHILD: "+ Child", LOG: "Log", EDIT: "Edit", DELETE: "Delete", CLOSE: "Close",
+    ADD_CHILD: "+ Child", LOG: "Log", EDIT: "Edit", DELETE: "Delete", CHANGE_PASSWORD: "Change password", NEW_PASSWORD: "New password", PASSWORD_SET: "Password updated", PASSWORD_TOO_SHORT: "Too short (min 4 chars)", CLOSE: "Close",
     INFO: "Info", UP: "Up", DOWN: "Down", DONE: "Done", ORDER: "Order", MOVE: "Move", CLICK_MAP: "click on the map", REFRESH: "Refresh",
     NEW_SITE: "NEW SITE", EDIT_SITE: "EDIT SITE",
     NEW_DEVICE: "NEW DEVICE", EDIT_DEVICE: "EDIT DEVICE", CHILD_DEVICE: "CHILD DEVICE",
