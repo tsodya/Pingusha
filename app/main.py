@@ -698,7 +698,7 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 
 app = FastAPI(title="Pingusha", lifespan=lifespan)
